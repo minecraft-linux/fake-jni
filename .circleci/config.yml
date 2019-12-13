@@ -13,7 +13,6 @@ jobs:
       - checkout
       - run: apk add git clang cmake build-base ninja autoconf automake libtool texinfo gettext-dev libexecinfo-dev
       - run: git submodule update --init --recursive
-
    build:
      executor: fake-jni
      steps:
@@ -40,7 +39,6 @@ jobs:
 #          key: build-{{ .Environment.CIRCLE_SHA1 }}
 #          paths: 
 #            - build/
-
   example:
     executor: fake-jni
 #    docker:
