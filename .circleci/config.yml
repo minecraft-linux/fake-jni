@@ -13,6 +13,7 @@ jobs:
        - checkout
        - run: apk add git clang cmake build-base ninja autoconf automake libtool texinfo gettext-dev libexecinfo-dev
        - run: git submodule update --init --recursive
+
    build:
      executor: fake-jni
      steps:
@@ -39,6 +40,7 @@ jobs:
 #          key: build-{{ .Environment.CIRCLE_SHA1 }}
 #          paths: 
 #            - build/
+
    example:
      executor: fake-jni
      steps:
@@ -47,31 +49,37 @@ jobs:
        - attach_workspace:
            at: /tmp/
        - run: ./build/examples/examples
+
    test:
      executor: fake-jni
      steps:
 #     - restore_cache:
 #         key: build-{{ .Environment.CIRCLE_SHA1 }} 
-      - attach_workspace:
-          at: /tmp/
-      - run: ./build/tests/tests
+       - attach_workspace:
+           at: /tmp/
+       - run: ./build/tests/tests
+
+   deploy:
+     executor: fake-jni
+     steps:
+       - run: /bin/true
 
 workflows:
   version: 2.1
   build:
    jobs:
-    - build_container
-    - build:
-        requires:
-         - build_container
-    - test:
-        requires:
-         - build
-    - example:
-        requires:
-         - build
-    - deploy:
-        requires:
-         - build
-         - example
-         - test
+     - build_container
+     - build:
+         requires:
+           - build_container
+     - test:
+         requires:
+           - build
+     - example:
+         requires:
+           - build
+     - deploy:
+         requires:
+           - build
+           - example
+           - test
