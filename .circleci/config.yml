@@ -1,20 +1,33 @@
 version: 2
 
-jobs:
-  build:
+executors:
+  fake-jni:
     docker:
       - image: alpine:edge
+    working_directory: /tmp
+
+jobs:
+  build_container:
+    executor: fake-jni
     steps:
       - checkout
       - run: apk add git clang cmake build-base ninja autoconf automake libtool texinfo gettext-dev libexecinfo-dev
       - run: git submodule update --init --recursive
+
+   build:
+     executor: fake-jni
+     steps:
       - run:
           name: make
           command: |
             mkdir build && \
             cd build && \
             CC=clang CXX=clang++ cmake -G Ninja .. && \
-            ninja -j2
+            ninja -j0
+						- persist_to_workspace:
+          root: .
+          paths:
+            - .
       - store_artifacts:
           path: build/libfake-jni.so
       - store_artifacts:
@@ -23,31 +36,40 @@ jobs:
           path: build/tests/tests
       - store_artifacts:
           path: include/fake-jni/
-      - save_cache:
-          key: build-{{ .Environment.CIRCLE_SHA1 }}
-          paths: 
-            - build/
+#      - save_cache:
+#          key: build-{{ .Environment.CIRCLE_SHA1 }}
+#          paths: 
+#            - build/
 
   example:
-    docker:
-     - image: alpine:edge
+    executor: fake-jni
+#    docker:
+#     - image: alpine:edge
     steps:
-     - restore_cache:
-         key: build-{{ .Environment.CIRCLE_SHA1 }}
+#     - restore_cache:
+#         key: build-{{ .Environment.CIRCLE_SHA1 }}
+     - attach_workspace:
+         at: /tmp/
      - run: ./build/examples/examples
   test:
-    docker:
-     - image: alpine:edge
+    executor: fake-jni
+#    docker:
+#     - image: alpine:edge
     steps:
-     - restore_cache:
-         key: build-{{ .Environment.CIRCLE_SHA1 }} 
+#     - restore_cache:
+#         key: build-{{ .Environment.CIRCLE_SHA1 }} 
+     - attach_workspace:
+         at: /tmp/
      - run: ./build/tests/tests
 
 workflows:
   version: 2
   build:
    jobs:
-    - build
+    - build_container
+    - build:
+        requires:
+         - build_container
     - test:
         requires:
          - build
