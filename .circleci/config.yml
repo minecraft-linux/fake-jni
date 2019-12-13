@@ -25,6 +25,8 @@ jobs:
           path: include/fake-jni/
       - save_cache:
           key: build-{{ .Environment.CIRCLE_SHA1 }}
+          paths: 
+            - build/
 
   example:
     docker:
