@@ -23,15 +23,22 @@ jobs:
           path: build/tests/tests
       - store_artifacts:
           path: include/fake-jni/
+      - save_cache:
+          key: build-{{ .Environment.CIRCLE_SHA1 }}
+
   example:
     docker:
      - image: alpine:edge
     steps:
+     - restore_cache:
+         key: build-{{ .Environment.CIRCLE_SHA1 }}
      - run: ./build/examples/examples
   test:
     docker:
      - image: alpine:edge
     steps:
+     - restore_cache:
+         key: build-{{ .Environment.CIRCLE_SHA1 }} 
      - run: ./build/tests/tests
 
 workflows:
