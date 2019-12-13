@@ -14,7 +14,8 @@ jobs:
        - run: git submodule update --init --recursive
 
    build:
-     executor: fake-jni
+     executor: 
+       name: fake-jni
      steps:
        - run:
            name: make
@@ -41,7 +42,8 @@ jobs:
 #            - build/
 
    example:
-     executor: fake-jni
+     executor:
+       name: fake-jni
      steps:
 #     - restore_cache:
 #         key: build-{{ .Environment.CIRCLE_SHA1 }}
@@ -50,7 +52,8 @@ jobs:
        - run: ./build/examples/examples
 
    test:
-     executor: fake-jni
+     executor: 
+       name: fake-jni
      steps:
 #     - restore_cache:
 #         key: build-{{ .Environment.CIRCLE_SHA1 }} 
@@ -59,7 +62,8 @@ jobs:
        - run: ./build/tests/tests
 
    deploy:
-     executor: fake-jni
+     executor: 
+       name: fake-jni
      steps:
        - run: /bin/true
 
