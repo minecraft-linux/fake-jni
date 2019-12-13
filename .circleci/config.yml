@@ -4,6 +4,7 @@ executors:
   fake-jni:
     docker:
       - image: alpine:edge
+        name: fake-jni-container
 
 jobs:
    build_container:
