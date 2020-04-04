@@ -66,13 +66,11 @@ namespace FakeJni {
 
 //TODO implement
  jint NativeInterface::pushLocalFrame(jint) const {
-  throw std::runtime_error("FATAL: 'JVMNativeInterface_::pushLocalFrame' is unimplemented!");
   return 0;
  }
 
 //TODO implement
  jobject NativeInterface::popLocalFrame(jobject) const {
-  throw std::runtime_error("FATAL: 'JVMNativeInterface_::popLocalFrame' is unimplemented!");
   return nullptr;
  }
 }
