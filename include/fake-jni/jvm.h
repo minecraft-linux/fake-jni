@@ -908,8 +908,6 @@ namespace FakeJni {
      //STATIC_FUNC and MEMBER_FUNC
      //high bytes of member pointer for vtable offset in `this`
      void * adj;
-     //STL_FUNC
-     _CX::arbitrary_align_t<sizeof(CX::Lambda<void ()>) - sizeof(fnPtr)> stlFunc;
     };
     static_func_t
      proxyFuncV,
@@ -958,14 +956,6 @@ namespace FakeJni {
   R nvInvoke(const JavaVM * vm, JClass * clazz, void * inst, A& args) const;
 
  public:
-  //used to reassemble functor object data
-  using functor_align_t = _CX::arbitrary_align_t<sizeof(CX::Lambda<void ()>)>;
-
-  struct FunctorData {
-   decltype(fnPtr) d1;
-   decltype(stlFunc) d2;
-  } __attribute__((packed));
-
   const bool isArbitrary;
 
   enum Modifiers : uint32_t {
@@ -1530,8 +1520,6 @@ namespace FakeJni {
   },
   type(STL_FUNC),
   modifiers(modifiers),
-  //store remaining functor object data
-  stlFunc(CX::union_cast<decltype(stlFunc)>(*(CX::union_cast<char *>(&func) + sizeof(fnPtr)))),
   proxyFuncV((void (*)())&_CX::FunctionAccessor<sizeof...(Args), decltype(func)>::template invokeV<>),
   proxyFuncA((void (*)())&_CX::FunctionAccessor<sizeof...(Args), decltype(func)>::template invokeA<>),
   isArbitrary(false)
@@ -1652,8 +1640,8 @@ namespace FakeJni {
     }
    }
    case STL_FUNC: {
-    const auto proxy = ((jvalue_option (*)(functor_align_t, func_arg_t))getFunctionProxy<A>());
-    const auto option = proxy(CX::union_cast<functor_align_t>(FunctorData{fnPtr, stlFunc}), args);
+    const auto proxy = ((jvalue_option (*)(void *, func_arg_t))getFunctionProxy<A>());
+    const auto option = proxy(fnPtr, args);
     if constexpr(!CX::IsSame<R, void>::value) {
      if (option.present) {
       return (R)option.value;
@@ -1662,12 +1650,12 @@ namespace FakeJni {
     }
    }
    case ARBITRARY_STL_FUNC: {
-    const auto proxy = (jvalue_option (*)(functor_align_t, const char *, JNIEnv *, void *, func_arg_t))getFunctionProxy<A>();
+    const auto proxy = (jvalue_option (*)(void * const*, const char *, JNIEnv *, void *, func_arg_t))getFunctionProxy<A>();
     auto vm_ref = const_cast<JavaVM *>(vm);
     JNIEnv * env;
     vm_ref->GetEnv((void **)&env, JNI_VERSION_1_8);
     const auto option = proxy(
-     CX::union_cast<functor_align_t>(FunctorData{fnPtr, stlFunc}),
+     &fnPtr,
      signature,
      env,
      clazzOrInst,

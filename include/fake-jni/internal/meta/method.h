@@ -270,23 +270,21 @@ namespace FakeJni {
 
   template<typename R>
   struct FunctionAccessor<3, CX::Lambda<R (void *, void *, void *)>> {
-   using align_t = _CX::arbitrary_align_t<sizeof(CX::Lambda<void ()>)>;
    using func_t = CX::Lambda<R (void *, void *, jvalue *)>;
 
    template<typename...>
    [[gnu::always_inline]]
-   inline static jvalue_option invokeA(align_t func, const char * signature, JNIEnv * env, void * classOrInst, jvalue * const values) {
-    const auto f = CX::union_cast<func_t>(func);
+   inline static jvalue_option invokeA(func_t *func, const char * signature, JNIEnv * env, void * classOrInst, jvalue * const values) {
     if constexpr(CX::IsSame<R, void>::value) {
-     f(env, classOrInst, values);
+      (*func)(env, classOrInst, values);
     } else {
-     return jvalue{f(env, classOrInst, values)};
+     return jvalue{(*func)(env, classOrInst, values)};
     }
    }
 
    template<typename...>
    [[gnu::always_inline]]
-   inline static jvalue_option invokeV(align_t func, const char * signature, JNIEnv * env, void * classOrInst, CX::va_list_t& list) {
+   inline static jvalue_option invokeV(func_t *func, const char * signature, JNIEnv * env, void * classOrInst, CX::va_list_t& list) {
     struct Parser {
      JniFunctionParser<CX::va_list_t&> parser;
      bool argsParsed = false;

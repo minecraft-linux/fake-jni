@@ -268,7 +268,6 @@ namespace FakeJni {
   },
   type(ARBITRARY_STL_FUNC),
   modifiers(modifiers),
-  stlFunc(CX::union_cast<decltype(stlFunc)>(*(CX::union_cast<char *>(&func) + sizeof(fnPtr)))),
   proxyFuncV((void (*)())&_CX::FunctionAccessor<3, CX::Lambda<jvalue (void *, void *, void *)>>::template invokeV<>),
   proxyFuncA((void (*)())&_CX::FunctionAccessor<3, CX::Lambda<jvalue (void *, void *, void *)>>::template invokeA<>),
   isArbitrary(true)
@@ -302,8 +301,7 @@ namespace FakeJni {
   //Clean up runtime-generated ffi descriptor and proxy functions
   switch(type) {
    case STL_FUNC: {
-    //recreate lambda object so the destructor will run, freeing the allocated anonymous struct (if any)
-    auto lambda = CX::union_cast<CX::Lambda<void ()>>(FunctorData{fnPtr, stlFunc});
+    ((CX::Lambda<void ()> *) &fnPtr)->~Lambda();
     break;
    }
    case REGISTER_NATIVES_FUNC: {
