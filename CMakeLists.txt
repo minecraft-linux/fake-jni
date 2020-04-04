@@ -94,7 +94,7 @@ if(NOT DEFINED UNWIND_CXX)
 endif()
 
 if(NOT DEFINED UNWIND_CONFIGURE_FLAGS)
- set(UNWIND_CONFIGURE_FLAGS "")
+ set(UNWIND_CONFIGURE_FLAGS "--disable-coredump")
 endif()
 
 ExternalProject_Add(unwind
