@@ -127,7 +127,7 @@ add_custom_command(
 
 #fake-jni
 file(GLOB_RECURSE FAKE_JNI_SRC "src/**.cpp")
-add_library(fake-jni SHARED ${FAKE_JNI_SRC})
+add_library(fake-jni STATIC ${FAKE_JNI_SRC})
 
 target_link_libraries(fake-jni dl libffi libunwind)
 add_dependencies(fake-jni ffi unwind)
