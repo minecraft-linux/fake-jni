@@ -6,6 +6,7 @@
 #include <shared_mutex>
 #include <csignal>
 #include <cxxabi.h>
+#include <polyfill/to_string.h>
 
 #define UNW_LOCAL_ONLY
 #include <libunwind.h>
@@ -351,7 +352,7 @@ if (found) {
   const std::string & options,
   LibraryOptions loptions
  ) {
-  std::scoped_lock libraryLock(library_mutex);
+  std::lock_guard<std::shared_timed_mutex> libraryLock(library_mutex);
   [[maybe_unused]]
   const auto&& context = setVmContext();
   std::string path = rpath.empty() ? "(embedded)" : rpath;
@@ -409,7 +410,7 @@ if (found) {
  }
 
  bool Jvm::removeLibrary(const Library * library, const std::string & options) {
-  std::scoped_lock libraryLock(library_mutex);
+  std::lock_guard<std::shared_timed_mutex> libraryLock(library_mutex);
   [[maybe_unused]]
   const auto&& context = setVmContext();
 #ifdef FAKE_JNI_DEBUG

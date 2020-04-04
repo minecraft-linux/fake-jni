@@ -1166,7 +1166,7 @@ namespace FakeJni {
   //TODO if classloaders are ever implemented, this property will be handled by the ClassLoader model
   std::map<const JClass *, PointerList<JObject *>> instances;
   std::map<jobject const, jobjectRefType> refs;
-  mutable std::shared_mutex instances_mutex, library_mutex;
+  mutable std::shared_timed_mutex instances_mutex, library_mutex;
 
   bool removeLibrary(const Library * library, const std::string & options);
 
