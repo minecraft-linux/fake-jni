@@ -38,6 +38,9 @@ endif()
 string(APPEND CMAKE_CXX_FLAGS " ${compiler_flags}")
 string(APPEND CMAKE_C_FLAGS " ${compiler_flags}")
 
+set(AUTOMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --target=${CMAKE_CXX_COMPILER_TARGET}")
+set(AUTOMAKE_C_FLAGS "${CMAKE_C_FLAGS} --target=${CMAKE_CXX_COMPILER_TARGET} -fPIC")
+
 #libffi
 if(NOT DEFINED FFI_CC)
  set(FFI_CC ${CMAKE_C_COMPILER})
@@ -54,7 +57,7 @@ endif()
 ExternalProject_Add(ffi
  SOURCE_DIR ${PROJECT_SOURCE_DIR}/libffi
  UPDATE_COMMAND ""
- CONFIGURE_COMMAND <SOURCE_DIR>/autogen.sh && <SOURCE_DIR>/configure ${FFI_CONFIGURE_FLAGS} --disable-shared --disable-builddir --prefix=<INSTALL_DIR> --host=${CMAKE_CXX_COMPILER_TARGET} CC=${FFI_CC} CFLAGS=${CMAKE_C_FLAGS} CXX=${FFI_CXX} CXXFLAGS=${CMAKE_CXX_FLAGS}
+ CONFIGURE_COMMAND <SOURCE_DIR>/autogen.sh && <SOURCE_DIR>/configure ${FFI_CONFIGURE_FLAGS} --disable-shared --disable-builddir --prefix=<INSTALL_DIR> --host=${CMAKE_CXX_COMPILER_TARGET} CC=${FFI_CC} CFLAGS=${AUTOMAKE_C_FLAGS} CXX=${FFI_CXX} CXXFLAGS=${AUTOMAKE_CXX_FLAGS}
  BUILD_IN_SOURCE 1
  BUILD_BYPRODUCTS <INSTALL_DIR>/lib/libffi.a
 )
@@ -97,7 +100,7 @@ endif()
 ExternalProject_Add(unwind
  SOURCE_DIR ${PROJECT_SOURCE_DIR}/libunwind
  UPDATE_COMMAND ""
- CONFIGURE_COMMAND <SOURCE_DIR>/autogen.sh && <SOURCE_DIR>/configure ${UNWIND_CONFIGURE_FLAGS} --disable-minidebuginfo --disable-shared --prefix=<INSTALL_DIR> --host=${CMAKE_CXX_COMPILER_TARGET} CC=${UNWIND_CC} CFLAGS=${CMAKE_C_FLAGS} CXX=${UNWIND_CXX} CXXFLAGS=${CMAKE_CXX_FLAGS}
+ CONFIGURE_COMMAND <SOURCE_DIR>/autogen.sh && <SOURCE_DIR>/configure ${UNWIND_CONFIGURE_FLAGS} --disable-minidebuginfo --disable-shared --prefix=<INSTALL_DIR> --host=${CMAKE_CXX_COMPILER_TARGET} CC=${UNWIND_CC} CFLAGS=${AUTOMAKE_C_FLAGS} CXX=${UNWIND_CXX} CXXFLAGS=${AUTOMAKE_CXX_FLAGS}
  BUILD_IN_SOURCE 1
  BUILD_BYPRODUCTS <INSTALL_DIR>/lib/libunwind.a
 )
