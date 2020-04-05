@@ -27,8 +27,13 @@ namespace FakeJni {
  }
 
  size_t JniReferenceTable::reserveReference() {
+  if (referencesNextIndex[0] == 0) {
+   resizeFrame(references.size() * 2);
+  }
   auto ret = referencesNextIndex[0];
   referencesNextIndex[0] = referencesNextIndex[ret];
+  if (referencesNextIndex[ret] == 0)
+   lastReferenceIndex = 0;
   referencesNextIndex[ret] = 0;
   return ret;
  }
