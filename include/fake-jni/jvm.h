@@ -827,9 +827,6 @@ namespace FakeJni {
    return descriptor.get();
   }
 
-  template<typename T>
-  operator T() const;
-
   JObject() = default;
   virtual ~JObject() = default;
   virtual const JClass & getClass() const noexcept;
@@ -1151,9 +1148,6 @@ namespace FakeJni {
    isArbitrary,
    isPrimitive;
 
-  template<typename T>
-  operator T() const;
-
   const uint32_t modifiers;
   std::shared_ptr<const JClass> parent;
 
@@ -1435,25 +1429,6 @@ DECLARE_NATIVE_TYPE(FakeJni::JClass)
 
 //fake-jni API definitions
 namespace FakeJni {
- //JObject template members
- template<typename T>
- JObject::operator T() const {
-  using component_t = typename CX::ComponentTypeResolver<T>::type;
-  constexpr const auto
-   downcast = __is_base_of(JObject, T),
-   jnicast = CX::IsSame<_jobject, component_t>::value;
-  static_assert(
-   downcast || jnicast,
-   "JObject can only be downcasted and converted to _jobject!"
-  );
-  auto ptr = const_cast<JObject *>(this);
-  if constexpr(downcast) {
-   return (T&)*ptr;
-  } else if constexpr(jnicast) {
-   return CX::union_cast<jobject>(ptr);
-  }
- }
-
  //JFieldID template members
  template<typename T, typename M>
  JFieldID::JFieldID(T M::* const member, const char * const name, const uint32_t modifiers) noexcept :
@@ -1910,26 +1885,6 @@ namespace FakeJni {
     return jv;
    }
   };
- }
-
- //JClass template members
- template<typename T>
- JClass::operator T() const {
-  using component_t = typename CX::ComponentTypeResolver<T>::type;
-  constexpr const auto
-   downcast = __is_base_of(JClass, component_t),
-   upcast = __is_base_of(component_t, JClass),
-   jnicast = CX::MatchAny<component_t, _jobject, _jclass>::value;
-  static_assert(
-   downcast || upcast || jnicast,
-   "JClass can only be upcast, downcast, or converted to _jobject or _jclass!"
-  );
-  auto ptr = const_cast<JClass *>(this);
-  if constexpr(upcast || downcast) {
-   return (T&)*ptr;
-  } else if constexpr(jnicast) {
-   return CX::union_cast<T>(this);
-  }
  }
 
  template<typename T>
