@@ -220,7 +220,7 @@ namespace FakeJni {
   using JArray<T>::JArray;
 
   static constexpr const auto & name = base_t::name;
-  inline static const std::shared_ptr<const JClass> descriptor = base_t::descriptor;
+  inline static const std::shared_ptr<const JClass> & descriptor = base_t::descriptor;
   inline static const JClass * getDescriptor() noexcept {
    return descriptor.get();
   }
@@ -238,7 +238,7 @@ namespace FakeJni {
   using JArray<T>::JArray;
 
   static constexpr const auto & name = base_t::name;
-  inline static const std::shared_ptr<const JClass> descriptor = base_t::descriptor;
+  inline static const std::shared_ptr<const JClass> & descriptor = base_t::descriptor;
   inline static const JClass * getDescriptor() noexcept {
    return descriptor.get();
   }
