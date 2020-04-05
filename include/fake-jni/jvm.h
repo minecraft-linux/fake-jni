@@ -28,6 +28,7 @@
 #include <shared_mutex>
 #include <utility>
 #include <csignal>
+#include <forward_list>
 
 //Internal JFieldID macros
 #define _ASSERT_FIELD_JNI_COMPLIANCE \
@@ -752,7 +753,7 @@ namespace FakeJni {
  class JClass;
 
  //Jni java/lang/Object implementation
- class JObject {
+ class JObject : public std::enable_shared_from_this<JObject> {
  public:
   //Internal fake-jni native class metadata
   //DEFINE_CLASS_NAME cant be used since this is the virtual base
@@ -1133,6 +1134,61 @@ namespace FakeJni {
   virtual JObject * newInstance(const JavaVM * vm, const char * signature, const jvalue * values) const;
  };
 
+ class JVMLocalGC {
+  // All explicit local Objects are stored here controlled by push and pop localframe
+  std::forward_list<std::vector<std::shared_ptr<JObject>>> localframe;
+  // save previous poped vector frames here, precleared
+  std::forward_list<std::vector<std::shared_ptr<JObject>>> freeframes;
+public:
+  JVMLocalGC() : localframe({{}}) {
+    
+  }
+
+  jint PushLocalFrame(jint cap) {
+    // Add it to the list
+    if(freeframes.empty()) {
+      localframe.emplace_front();
+    } else {
+      localframe.splice_after(localframe.before_begin(), freeframes, freeframes.before_begin());
+    }
+    // Reserve Memory for the new Frame
+    if(cap)
+      localframe.front().reserve(cap);
+    return 0;
+  };
+  jobject PopLocalFrame(jobject previousframe) {
+    
+    // Clear current Frame and move to freelist
+    localframe.front().clear();
+    freeframes.splice_after(freeframes.before_begin(), localframe, localframe.before_begin());
+    if(localframe.empty()) {
+      // Log::warn("JNIVM", "Freed top level frame of this ENV, recreate it");
+      localframe.emplace_front();
+    }
+    return 0;
+  };
+  jobject NewLocalRef(jobject obj) {
+    if(!obj) return nullptr;
+    // Get the current localframe and create a ref
+    // Test if it wasn't allocated with a shared_ptr
+    // If the weakptr is a bad pointer, then create a new shared_ptr to takeover ownership
+    auto weak = (*(JObject*)obj).weak_from_this();
+    localframe.front().emplace_back(weak.expired() ? std::shared_ptr<JObject>((JObject*)obj) : weak.lock());
+    return obj;
+  };
+  void DeleteLocalRef(jobject obj) {
+    if(!obj) return;
+    for(auto && frame : localframe) {
+      auto fe = frame.end();
+      auto f = std::find(frame.begin(), fe, (*(JObject*)obj).shared_from_this());
+      if(f != fe) {
+        frame.erase(f);
+        return;
+      }
+    }
+  };
+ };
+
  //FAKE-JNI USER API
  //TODO all JVM calls should be blocking until execution completes to prevent race conditions from emerging
  class Jvm : public JavaVM {
@@ -1144,6 +1200,10 @@ namespace FakeJni {
   FILE * const log;
   InvokeInterface * invoke;
   NativeInterface * native;
+  std::mutex GCmutex;
+  // Map of all jni threads and local stuff by thread id
+  std::unordered_map<pthread_t, std::shared_ptr<JVMLocalGC>> gc;
+  std::vector<std::shared_ptr<JObject>> globals;
   JvmtiInterface * jvmti;
   JniEnv * jniEnv;
   JvmtiEnv * jvmtiEnv;
@@ -1184,6 +1244,37 @@ namespace FakeJni {
   virtual ~Jvm();
 
   Jvm& operator=(const Jvm&) const = delete;
+
+  //GC
+  const std::shared_ptr<JVMLocalGC> & GetLocalGC() {
+    std::lock_guard<std::mutex> lock(GCmutex);
+    auto&& lgc = gc[pthread_self()];
+    if(!lgc) {
+      // First time add it to local gc list
+      lgc = std::make_shared<JVMLocalGC>();
+    }
+    return lgc;
+  };
+
+  jobject NewGlobalRef(jobject obj) {
+    if(!obj) return nullptr;
+    std::lock_guard<std::mutex> lock(GCmutex);
+    auto weak = (*(JObject*)obj).weak_from_this();
+    globals.emplace_back(weak.expired() ? std::shared_ptr<JObject>((JObject*)obj) : weak.lock());
+    return obj;
+  };
+
+  void DeleteGlobalRef(jobject obj) {
+    if(!obj) return;
+    std::lock_guard<std::mutex> lock(GCmutex);
+    auto fe = globals.end();
+    auto f = std::find(globals.begin(), fe, (*(JObject*)obj).shared_from_this());
+    if(f != fe) {
+      globals.erase(f);
+    } else {
+      // Log::error("JNIVM", "Failed to delete Global Reference");
+    }
+  };
 
   //Other properties
   virtual FILE * getLog() const;

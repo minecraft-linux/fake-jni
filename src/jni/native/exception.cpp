@@ -64,13 +64,11 @@ namespace FakeJni {
   vm.fatalError(message);
  }
 
-//TODO implement
- jint NativeInterface::pushLocalFrame(jint) const {
-  return 0;
+ jint NativeInterface::pushLocalFrame(jint i) const {
+  return vm.GetLocalGC()->PushLocalFrame(i);
  }
 
-//TODO implement
- jobject NativeInterface::popLocalFrame(jobject) const {
-  return nullptr;
+ jobject NativeInterface::popLocalFrame(jobject o) const {
+  return vm.GetLocalGC()->PopLocalFrame(o);
  }
 }

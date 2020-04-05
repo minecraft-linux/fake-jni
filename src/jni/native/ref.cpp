@@ -26,6 +26,7 @@ namespace FakeJni {
    );
   }
 #endif
+  vm.NewGlobalRef(jobj);
   return jobj;
  }
 
@@ -44,6 +45,7 @@ namespace FakeJni {
    );
   }
 #endif
+  vm.DeleteGlobalRef(jobj);
  }
 
  jobject NativeInterface::newLocalRef(jobject const jobj) const {
@@ -59,6 +61,7 @@ namespace FakeJni {
    );
   }
 #endif
+  vm.GetLocalGC()->NewLocalRef(jobj);
   return jobj;
  }
 
@@ -77,6 +80,7 @@ namespace FakeJni {
    );
   }
 #endif
+  vm.GetLocalGC()->DeleteLocalRef(jobj);
  }
 
  jweak NativeInterface::newWeakGlobalRef(jobject const jobj) const {

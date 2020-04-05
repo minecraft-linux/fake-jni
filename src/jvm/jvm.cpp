@@ -260,6 +260,12 @@ case _signal: {\
   auto& instances = (*this)[&inst->getClass()];
   if (!instances.contains(inst)) {
    instances.insert(inst, nullptr);
+   // All returned values are new local refs
+   if (inst->weak_from_this().expired()) {
+    GetLocalGC()->NewLocalRef((jobject)inst);
+   } else {
+    GetLocalGC()->NewLocalRef((jobject)inst);
+   }
    return true;
   }
   return false;
