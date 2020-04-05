@@ -70,9 +70,12 @@ namespace FakeJni {
  }
 
  jobject NativeInterface::popLocalFrame(jobject move) const {
+  std::shared_ptr<JObject> moveRef;
   if (move != nullptr)
-   throw std::runtime_error("Moving references into parent frame is not supported");
+   moveRef = env.resolveReference(move);
   env.popLocalFrame();
+  if (moveRef)
+   return env.createLocalReference(moveRef);
   return nullptr;
  }
 }
