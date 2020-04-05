@@ -5,10 +5,9 @@
 
 #include <stdexcept>
 
-#define _NEW_ARRAY(array_type)\
+#define _NEW_ARRAY(array_type, ret_type)\
 auto arr = new array_type(size);\
-vm.addInstance(arr);\
-return *arr;
+return (ret_type) env.createLocalReference(std::shared_ptr<JObject>(arr));
 
 #define _GET_ARRAY_ELEMENTS(array_type)\
 auto arr = CX::union_cast<array_type *>(jarr);\
@@ -85,48 +84,49 @@ namespace FakeJni {
   for (JInt i = 0; i < size; i++) {
    arr[i] = *CX::union_cast<JObject *>(initialElement);
   }
-  vm.addInstance(arr);
-  return *arr;
+  return (jobjectArray) env.createLocalReference(std::shared_ptr<JObject>(arr));
  }
 
- jobject NativeInterface::getObjectArrayElement(jobjectArray arr, jsize index) const {
-  return (*CX::union_cast<JObjectArray *>(arr))[index];
+ jobject NativeInterface::getObjectArrayElement(jobjectArray arrRef, jsize index) const {
+  auto arr = env.resolveReference(arrRef);
+  return ((JObjectArray *) arr.get())[index];
  }
 
- void NativeInterface::setObjectArrayElement(jobjectArray jarr, jsize index, jobject obj) const {
-  (*CX::union_cast<JObjectArray *>(jarr))[index] = *CX::union_cast<JObject *>(obj);
+ void NativeInterface::setObjectArrayElement(jobjectArray arrRef, jsize index, jobject obj) const {
+  auto arr = env.resolveReference(arrRef);
+  ((JObjectArray *) arr.get())[index] = *CX::union_cast<JObject *>(obj);
  }
 
  jbooleanArray NativeInterface::newBooleanArray(jsize size) const {
-  _NEW_ARRAY(JBooleanArray)
+  _NEW_ARRAY(JBooleanArray, jbooleanArray)
  }
 
  jbyteArray NativeInterface::newByteArray(jsize size) const {
-  _NEW_ARRAY(JByteArray)
+  _NEW_ARRAY(JByteArray, jbyteArray)
  }
 
  jcharArray NativeInterface::newCharArray(jsize size) const {
-  _NEW_ARRAY(JCharArray)
+  _NEW_ARRAY(JCharArray, jcharArray)
  }
 
  jshortArray NativeInterface::newShortArray(jsize size) const {
-  _NEW_ARRAY(JShortArray)
+  _NEW_ARRAY(JShortArray, jshortArray)
  }
 
  jintArray NativeInterface::newIntArray(jsize size) const {
-  _NEW_ARRAY(JIntArray)
+  _NEW_ARRAY(JIntArray, jintArray)
  }
 
  jlongArray NativeInterface::newLongArray(jsize size) const {
-  _NEW_ARRAY(JLongArray)
+  _NEW_ARRAY(JLongArray, jlongArray)
  }
 
  jfloatArray NativeInterface::newFloatArray(jsize size) const {
-  _NEW_ARRAY(JFloatArray)
+  _NEW_ARRAY(JFloatArray, jfloatArray)
  }
 
  jdoubleArray NativeInterface::newDoubleArray(jsize size) const {
-  _NEW_ARRAY(JDoubleArray)
+  _NEW_ARRAY(JDoubleArray, jdoubleArray)
  }
 
  jboolean * NativeInterface::getBooleanArrayElements(jbooleanArray jarr, jboolean * copy) const {

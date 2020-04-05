@@ -125,7 +125,7 @@ namespace FakeJni {
  }
 
  const JFieldID * JClass::getField(const char * name) const noexcept {
-  const auto * jobjDescriptor = &JObject::descriptor;
+  const auto * jobjDescriptor = JObject::getDescriptor();
   auto * clazz = this;
   const JFieldID * fid = nullptr;
   while (clazz != jobjDescriptor && !fid) {
@@ -136,13 +136,13 @@ namespace FakeJni {
      break;
     }
    }
-   clazz = &clazz->parent;
+   clazz = clazz->parent.get();
   }
   return fid;
  }
 
  const JFieldID * JClass::getField(const char * sig, const char * name) const noexcept {
-  const auto * jobjDescriptor = &JObject::descriptor;
+  const auto * jobjDescriptor = JObject::getDescriptor();
   auto * clazz = this;
   const JFieldID * fid = nullptr;
   while (clazz != jobjDescriptor && !fid) {
@@ -155,7 +155,7 @@ namespace FakeJni {
      }
     }
    }
-   clazz = &clazz->parent;
+   clazz = clazz->parent.get();
   }
   return fid;
  }

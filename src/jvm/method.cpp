@@ -370,7 +370,7 @@ namespace FakeJni {
        }
       }
      }
-     clazz = &clazz->parent;
+     clazz = clazz->parent.get();
     }
     throw std::runtime_error(
      "FATAL: Could not perform virtual function invocation for '"

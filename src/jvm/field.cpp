@@ -110,7 +110,7 @@ namespace FakeJni {
     const auto * jobjDescriptor = JObject::getDescriptor();
     const JFieldID * fieldDescriptor = clazz->getField(signature, name);
     if (!fieldDescriptor) {
-     clazz = &clazz->parent;
+     clazz = clazz->parent.get();
      while (clazz != jobjDescriptor) {
       for (auto& fid : clazz->getFields()) {
        if (strcmp(fid->getName(), name) == 0) {
@@ -120,7 +120,7 @@ namespace FakeJni {
         }
        }
       }
-      clazz = &clazz->parent;
+      clazz = clazz->parent.get();
      }
     }
     return fieldDescriptor;
@@ -141,7 +141,7 @@ namespace FakeJni {
    default: {
     auto clazz = &obj->getClass();
     const JFieldID * fid = this;
-    if (clazz != &JClass::descriptor) {
+    if (clazz != JClass::getDescriptor()) {
      fid = findVirtualMatch(clazz);
     }
     if (fid) {

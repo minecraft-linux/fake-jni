@@ -15,22 +15,28 @@ namespace FakeJni {
   return nullptr;
  }
 
- jobject NativeInterface::newObjectV(jclass clazz, jmethodID mid, CX::va_list_t& args) const {
-  return *((JClass *)*clazz)->newInstance(&vm, ((JMethodID *)mid)->getSignature(), args);
+ jobject NativeInterface::newObjectV(jclass const clazzRef, jmethodID mid, CX::va_list_t& args) const {
+  auto clazz = std::dynamic_pointer_cast<JClass>(env.resolveReference(clazzRef));
+  auto inst = clazz->newInstance(&vm, ((JMethodID *)mid)->getSignature(), args);
+  return env.createLocalReference(std::shared_ptr<JObject>(inst));
  }
 
- jobject NativeInterface::newObjectA(jclass const clazz, jmethodID const mid, const jvalue * const args) const {
-  auto inst = ((JClass *)*clazz)->newInstance(&vm, ((JMethodID *)mid)->getSignature(), args);
-  return CX::union_cast<jobject>(inst);
+ jobject NativeInterface::newObjectA(jclass const clazzRef, jmethodID const mid, const jvalue * const args) const {
+  auto clazz = std::dynamic_pointer_cast<JClass>(env.resolveReference(clazzRef));
+  auto inst = clazz->newInstance(&vm, ((JMethodID *)mid)->getSignature(), args);
+  return env.createLocalReference(std::shared_ptr<JObject>(inst));
  }
 
- jclass NativeInterface::getObjectClass(jobject const obj) const {
-  return *&((JObject *)*obj)->getClass();
+ jclass NativeInterface::getObjectClass(jobject const objRef) const {
+  auto obj = env.resolveReference(objRef);
+  return (jclass) env.createLocalReference(std::const_pointer_cast<JClass>(obj->getClassRef()));
  }
 
- jboolean NativeInterface::isInstanceOf(jobject const obj, jclass const clazz) const {
-  //pointer equivalence should be fine since class descriptors are invariant
-  return (unsigned char)(&((JObject *)*obj)->getClass() == ((JClass *)*clazz));
+ jboolean NativeInterface::isInstanceOf(jobject const objRef, jclass const clazzRef) const {
+  // TODO: incorrect implementation
+  auto obj = env.resolveReference(objRef);
+  auto clazz = env.resolveReference(clazzRef);
+  return (unsigned char)(&obj->getClass() == ((JClass *)clazz.get()));
  }
 
  jclass NativeInterface::defineClass(const char *, jobject, const jbyte *, jsize) const {
@@ -39,23 +45,24 @@ namespace FakeJni {
  }
 
  jclass NativeInterface::findClass(const char * const name) const {
-  return (jclass)vm.findClass(name);
+  return (jclass) env.createLocalReference(std::const_pointer_cast<JClass>(vm.findClass(name)));
  }
 
- jclass NativeInterface::getSuperclass(jclass jclazz) const {
-  return *&((JClass *)*jclazz)->parent;
+ jclass NativeInterface::getSuperclass(jclass clazzRef) const {
+  auto clazz = std::dynamic_pointer_cast<JClass>(env.resolveReference(clazzRef));
+  return (jclass) env.createLocalReference(std::const_pointer_cast<JClass>(clazz->parent));
  }
 
- jboolean NativeInterface::isAssignableFrom(jclass jderived, jclass jbase) const {
-  const auto jobjDescriptor = &JObject::descriptor;
-  const JClass
-   *derived = *jderived,
-   *base = *jbase;
+ jboolean NativeInterface::isAssignableFrom(jclass jderivedRef, jclass jbaseRef) const {
+  const auto jobjDescriptor = JObject::getDescriptor();
+  auto jderived = std::dynamic_pointer_cast<JClass>(env.resolveReference(jderivedRef));
+  auto base = std::dynamic_pointer_cast<JClass>(env.resolveReference(jbaseRef));
+  const JClass *derived = jderived.get();
   while (derived != jobjDescriptor) {
-   if (derived == base) {
+   if (derived == base.get()) {
     return JNI_TRUE;
    }
-   derived = &derived->parent;
+   derived = derived->parent.get();
   }
   return JNI_FALSE;
  }

@@ -93,12 +93,12 @@ for (unsigned int i = 0; i < argc; i++) {\
 
 #define _DEFINE_CLASS_NAME_1(str) \
 static constexpr const char name[] = str;\
-static const FakeJni::JClass descriptor;\
+static const std::shared_ptr<const FakeJni::JClass> descriptor;\
 inline static const FakeJni::JClass * getDescriptor() noexcept {\
- return &descriptor;\
+ return descriptor.get();\
 }\
 virtual const FakeJni::JClass & getClass() const noexcept override {\
- return descriptor;\
+ return *descriptor;\
 }
 
 #define _DEFINE_CLASS_NAME_2(str, baseClass) \
@@ -125,7 +125,7 @@ namespace FakeJni::_CX {\
 }
 
 #define _DEFINE_NATIVE_DESCRIPTOR_2(clazz, modifiers) \
-inline const FakeJni::JClass clazz::descriptor { modifiers, FakeJni::_CX::JClassBreeder<clazz> {
+inline const std::shared_ptr<const FakeJni::JClass> clazz::descriptor (new FakeJni::JClass { modifiers, FakeJni::_CX::JClassBreeder<clazz> {
 
 #define _DEFINE_NATIVE_DESCRIPTOR_1(clazz) \
 _DEFINE_NATIVE_DESCRIPTOR_2(clazz, FakeJni::JClass::PUBLIC)
@@ -144,7 +144,7 @@ _BEGIN_NATIVE_DESCRIPTOR_2(clazz, FakeJni::JClass::PUBLIC)
 DUAL_OVERLOAD_RESOLVER(__VA_ARGS__, _BEGIN_NATIVE_DESCRIPTOR_2, _BEGIN_NATIVE_DESCRIPTOR_1, _) (__VA_ARGS__)
 
 #define _BEGIN_NATIVE_PRIMITIVE_DESCRIPTOR_3(primitive, descriptorName, modifiers) \
-const FakeJni::JClass descriptorName { modifiers, FakeJni::_CX::JClassBreeder<primitive> {
+const std::shared_ptr<const FakeJni::JClass> descriptorName (new FakeJni::JClass { modifiers, FakeJni::_CX::JClassBreeder<primitive> {
 
 #define _BEGIN_NATIVE_PRIMITIVE_DESCRIPTOR_2(primitive, descriptorName) \
 _BEGIN_NATIVE_PRIMITIVE_DESCRIPTOR_3(primitive, descriptorName, FakeJni::JClass::PUBLIC)
@@ -152,7 +152,7 @@ _BEGIN_NATIVE_PRIMITIVE_DESCRIPTOR_3(primitive, descriptorName, FakeJni::JClass:
 #define BEGIN_NATIVE_PRIMITIVE_DESCRIPTOR(...) \
 TRI_OVERLOAD_RESOLVER(__VA_ARGS__, _BEGIN_NATIVE_PRIMITIVE_DESCRIPTOR_3, _BEGIN_NATIVE_PRIMITIVE_DESCRIPTOR_2, _) (__VA_ARGS__)
 
-#define END_NATIVE_DESCRIPTOR }};
+#define END_NATIVE_DESCRIPTOR }});
 
 #define _DECLARE_NATIVE_PRIMITIVE_DESCRIPTOR_3(primitive, signature, descriptorName) \
 DEFINE_JNI_TYPE(primitive, signature)\
@@ -821,10 +821,10 @@ namespace FakeJni {
   //Internal fake-jni native class metadata
   //DEFINE_CLASS_NAME cant be used since this is the virtual base
   static constexpr const char name[] = "java/lang/Object";
-  static const JClass descriptor;
+  static const std::shared_ptr<const JClass> descriptor;
 
   inline static const JClass * getDescriptor() noexcept {
-   return &descriptor;
+   return descriptor.get();
   }
 
   template<typename T>
@@ -833,6 +833,7 @@ namespace FakeJni {
   JObject() = default;
   virtual ~JObject() = default;
   virtual const JClass & getClass() const noexcept;
+  virtual std::shared_ptr<const JClass> getClassRef() const noexcept;
  };
 
  //fake-jni implementation
@@ -1102,7 +1103,7 @@ namespace FakeJni {
    using constructor_func_t = JObject * (*)(const JavaVM * vm, const char * signature, A args);
 
    const std::initializer_list<ClassDescriptorElement> descriptorElements;
-   const JClass& parent = []() constexpr noexcept -> const JClass& {
+   const std::shared_ptr<const JClass> &parent = []() constexpr noexcept -> const std::shared_ptr<const JClass> & {
     if constexpr(_CX::BaseDefined<T>::value) {
      return T::base;
     }
@@ -1154,7 +1155,7 @@ namespace FakeJni {
   operator T() const;
 
   const uint32_t modifiers;
-  const JClass& parent;
+  std::shared_ptr<const JClass> parent;
 
   //Property associations
   PointerList<const JMethodID *> functions;
@@ -1221,11 +1222,8 @@ namespace FakeJni {
   bool running = false;
 
   PointerList<const Library *> libraries;
-  PointerList<const JClass *> classes;
-  //TODO if classloaders are ever implemented, this property will be handled by the ClassLoader model
-  std::map<const JClass *, PointerList<JObject *>> instances;
-  std::map<jobject const, jobjectRefType> refs;
-  mutable std::shared_timed_mutex instances_mutex, library_mutex;
+  std::map<std::string, std::shared_ptr<const JClass>> classes;
+  mutable std::shared_timed_mutex library_mutex, classes_mutex;
 
   bool removeLibrary(const Library * library, const std::string & options);
 
@@ -1281,14 +1279,6 @@ namespace FakeJni {
   virtual void setJvmtiEnv(JvmtiEnv * env);
   virtual JvmtiEnv& getJvmtiEnv() const;
 
-  virtual const PointerList<const JClass *>& getClasses() const;
-  virtual const PointerList<JObject *>& operator[](const JClass * clazz) const;
-  virtual PointerList<JObject *>& operator[](const JClass * clazz);
-  virtual const decltype(instances)& getAllInstances() const;
-  virtual decltype(refs)& getReferences();
-  virtual const decltype(refs)& getReferences() const;
-  virtual bool addInstance(JObject * inst);
-  virtual bool removeInstance(JObject * inst);
   virtual bool isRunning() const;
 
   jobject createGlobalReference(std::shared_ptr<JObject> object);
@@ -1299,9 +1289,9 @@ namespace FakeJni {
   bool registerClass();
   template<typename T>
   bool unregisterClass();
-  virtual bool registerClass(const JClass * clazz, bool deallocate = false);
+  virtual bool registerClass(std::shared_ptr<const JClass> clazz);
   virtual bool unregisterClass(const JClass * clazz);
-  virtual const JClass * findClass(const char * name) const;
+  virtual std::shared_ptr<const JClass> findClass(const char * name) const;
   //Needs to be const to allow attaching agents / JNI modules at runtime
   virtual void attachLibrary(
    const std::string & rpath,
@@ -1515,7 +1505,7 @@ namespace FakeJni {
  T* JFieldID::get(JObject * const obj) const {
   auto clazz = &obj->getClass();
   const JFieldID * fid = this;
-  if (clazz != &JClass::descriptor) {
+  if (clazz != JClass::getDescriptor()) {
    fid = findVirtualMatch(clazz);
   }
   if (fid) {
@@ -1785,7 +1775,7 @@ namespace FakeJni {
    __is_base_of(JObject, T),
    "Only native classes may be passed to registerClass!"
   );
-  return registerClass(&T::descriptor);
+  return registerClass(T::descriptor);
  }
 
  template<typename T>
@@ -1794,7 +1784,7 @@ namespace FakeJni {
    __is_base_of(JObject, T),
    "Only native classes may be passed to unregisterClass!"
   );
-  return unregisterClass(&T::descriptor);
+  return unregisterClass(T::descriptor.get());
  }
 
  template<typename T>
@@ -1841,8 +1831,7 @@ namespace FakeJni {
   template<typename T>
   template<typename A>
   JObject * JClassBreeder<T, true>::constructorPredicate(const JavaVM * const vm, const char * const signature, A args) {
-   JClass& descriptor = const_cast<JClass&>(T::descriptor);
-   Jvm * const jvm = (Jvm *)const_cast<JavaVM *>(vm);
+   JClass& descriptor = const_cast<JClass&>(*T::getDescriptor());
    for (auto& method : descriptor.functions) {
     if (strcmp(method->getSignature(), signature) == 0 && strcmp(method->getName(), "<init>") == 0) {
      const T * inst = method->nonVirtualInvoke(vm, &descriptor, &descriptor, args);
@@ -1852,7 +1841,6 @@ namespace FakeJni {
      } else {
       baseInst = (JObject *)inst;
      }
-     (*jvm)[&descriptor].insert(baseInst);
      return baseInst;
     }
    }
@@ -1970,7 +1958,7 @@ namespace FakeJni {
  }
 
 //Primitive type class descriptors
- extern const JClass
+ extern const std::shared_ptr<const JClass>
   voidDescriptor,
   booleanDescriptor,
   byteDescriptor,

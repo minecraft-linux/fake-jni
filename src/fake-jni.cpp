@@ -4,11 +4,11 @@
 
 #define _CERATE_MAIN_METHOD_CHECK \
 auto log = vm.getLog();\
-JClass * clazz;\
+std::shared_ptr<JClass> clazz;\
 if (!cclazz) {\
- clazz = createDummyClass(vm);\
+ clazz = std::shared_ptr<JClass>(createDummyClass(vm));\
 } else {\
- clazz = const_cast<JClass *>(cclazz);\
+ clazz = std::const_pointer_cast<JClass>(cclazz);\
  for (auto mid : clazz->getMethods()) {\
   if (strcmp(mid->getName(), "main") == 0 && strcmp(mid->getSignature(), "([Ljava/lang/String;)V") == 0) {\
    fprintf(log, "WARNING: '%s' already contains a main method definition!\n", clazz->getName());\
@@ -23,25 +23,17 @@ rVm.registerClass(clazz);
 namespace FakeJni {
  JClass * createDummyClass(const Jvm & vm) {
   std::string dummyName = "__Dummy";
-  bool nameOverlaps = true;
-  while (nameOverlaps) {
-   nameOverlaps = false;
-   for (auto& clazz : vm.getClasses()) {
-    if (strcmp(clazz->getName(), dummyName.c_str()) == 0) {
-     dummyName.push_back('_');
-     nameOverlaps = true;
-     break;
-    }
-   }
+  while (vm.findClass(dummyName.c_str())) {
+   dummyName.push_back('_');
   }
   return new JClass(dummyName.c_str(), JClass::PUBLIC);
  }
 
- void createMainMethod(const Jvm & vm, _CX::main_method_t * main, JClass * cclazz) {
+ void createMainMethod(const Jvm & vm, _CX::main_method_t * main, std::shared_ptr<const JClass> cclazz) {
   _CERATE_MAIN_METHOD_CHECK
  }
 
- void createMainMethod(const Jvm & vm, CX::Lambda<_CX::main_method_t> main, const JClass * cclazz) {
+ void createMainMethod(const Jvm & vm, CX::Lambda<_CX::main_method_t> main, std::shared_ptr<const JClass> cclazz) {
   _CERATE_MAIN_METHOD_CHECK
  }
 }

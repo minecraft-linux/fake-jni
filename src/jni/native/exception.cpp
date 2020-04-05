@@ -17,7 +17,7 @@ namespace FakeJni {
 
  jint NativeInterface::throwNew(jclass jclazz, const char * message) const {
   const auto clazz = ((JClass *)*jclazz);
-  if (!isAssignableFrom(jclazz, *&JThrowable::descriptor)) {
+  if (!isAssignableFrom(jclazz, *JThrowable::getDescriptor())) {
    throw std::runtime_error(
     "FATAL: Requested exception class '"
      + std::string(clazz->getName())
@@ -34,7 +34,6 @@ namespace FakeJni {
   }
   //clean up string eventually
   auto jstrMessage = new JString(message);
-  vm.addInstance(jstrMessage);
   vm.throwException(constructor->invoke(&vm, clazz, jstrMessage));
   return 0;
  }

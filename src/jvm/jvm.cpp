@@ -67,8 +67,7 @@ namespace FakeJni {
   jvmtiEnv(new JvmtiEnv(*this)),
   jniEnvFactory([this]() { return std::make_unique<JniEnv>(*this); }),
   globalRefs(128),
-  libraries{true},
-  classes{true}
+  libraries{true}
  {
   functions = invoke;
   vms.insert(this);
@@ -84,6 +83,7 @@ namespace FakeJni {
   registerClass<JClass>();
   registerClass<JString>();
   registerClass<JThrowable>();
+  /*TODO: Reenable arrays
   registerClass<JArray<JThrowable *>>();
 //  registerClass<JWeak>();
   registerClass<JBooleanArray>();
@@ -95,14 +95,15 @@ namespace FakeJni {
   registerClass<JLongArray>();
   registerClass<JDoubleArray>();
   registerClass<JObjectArray>();
-  registerClass(&voidDescriptor);
-  registerClass(&booleanDescriptor);
-  registerClass(&byteDescriptor);
-  registerClass(&shortDescriptor);
-  registerClass(&intDescriptor);
-  registerClass(&floatDescriptor);
-  registerClass(&longDescriptor);
-  registerClass(&doubleDescriptor);
+   */
+  registerClass(voidDescriptor);
+  registerClass(booleanDescriptor);
+  registerClass(byteDescriptor);
+  registerClass(shortDescriptor);
+  registerClass(intDescriptor);
+  registerClass(floatDescriptor);
+  registerClass(longDescriptor);
+  registerClass(doubleDescriptor);
  }
 
 #define _SIG_SET(_signal, action) \
@@ -214,46 +215,6 @@ case _signal: {\
   return *jvmtiEnv;
  }
 
- const PointerList<const JClass *>& Jvm::getClasses() const {
-  return classes;
- }
-
- PointerList<JObject *>& Jvm::operator[](const JClass * clazz) {
-  std::unique_lock lock(instances_mutex);
-  return instances[clazz];
- }
-
- const PointerList<JObject *>& Jvm::operator[](const JClass * clazz) const {
-  std::shared_lock lock(instances_mutex);
-  return (const_cast<Jvm&>(*this).instances)[clazz];
- }
-
- const decltype(Jvm::instances)& Jvm::getAllInstances() const {
-  return instances;
- }
-
- decltype(Jvm::refs)& Jvm::getReferences() {
-  return refs;
- }
-
- const decltype(Jvm::refs)& Jvm::getReferences() const {
-  return refs;
- }
-
- bool Jvm::addInstance(JObject * inst) {
-  auto& instances = (*this)[&inst->getClass()];
-  if (!instances.contains(inst)) {
-   instances.insert(inst, nullptr);
-   return true;
-  }
-  return false;
- }
-
- bool Jvm::removeInstance(JObject * inst) {
-  auto & instances = (*this)[&inst->getClass()];
-  return instances.end() != instances.erase(inst);
- }
-
  bool Jvm::isRunning() const {
   return running;
  }
@@ -279,24 +240,16 @@ case _signal: {\
   for (auto library : libraries) {
    removeLibrary(library, "");
   }
-  instances.clear();
   delete jvmtiEnv;
   delete jvmti;
   delete invoke;
   delete[] uuid;
  }
 
- bool Jvm::registerClass(const JClass * clazz, bool deallocate) {
-  bool registered = classes.contains(clazz);
-  if (!registered) {
-   for (auto c : classes) {
-    if (strcmp(c->getName(), clazz->getName()) == 0) {
-     registered |= true;
-     break;
-    }
-   }
-  }
-  if (registered) {
+ bool Jvm::registerClass(std::shared_ptr<const JClass> clazz) {
+  std::lock_guard<std::shared_timed_mutex> lock (classes_mutex);
+  auto found = classes.find(clazz->getName());
+  if (found != classes.end()) {
 #ifdef FAKE_JNI_DEBUG
    fprintf(
     log,
@@ -307,41 +260,35 @@ case _signal: {\
 #endif
    return false;
   } else {
-   std::unique_lock lock(instances_mutex);
-   instances[clazz].setDeallocate(true);
-   if (deallocate) {
-    classes.insert(clazz);
-   } else {
-    classes.insert(clazz, nullptr);
-   }
+   classes.insert({std::string(clazz->getName()), clazz});
   }
   return true;
  }
 
  bool Jvm::unregisterClass(const JClass * clazz) {
-  const auto found = classes.contains(clazz);
-if (found) {
- classes.erase(clazz);
-}
+  std::lock_guard<std::shared_timed_mutex> lock (classes_mutex);
+  auto found = classes.find(clazz->getName());
+  if (found != classes.end() && found->second.get() == clazz) {
+   classes.erase(found);
+   return true;
+  } else {
 #ifdef FAKE_JNI_DEBUG
-  else {
    fprintf(
     log,
     "WARNING: Class '%s' is not registered on the JVM instance '%s'!\n",
     clazz->getName(),
     uuid
    );
-  }
 #endif
-  return found;
+   return false;
+  }
  }
 
- const JClass * Jvm::findClass(const char * name) const {
-  for (auto clazz : classes) {
-   if (strcmp(name, clazz->getName()) == 0) {
-    return clazz;
-   }
-  }
+ std::shared_ptr<const JClass> Jvm::findClass(const char * name) const {
+  std::shared_lock<std::shared_timed_mutex> lock (classes_mutex);
+  auto found = classes.find(name);
+  if (found != classes.end())
+    return found->second;
   return nullptr;
  }
 
@@ -452,13 +399,14 @@ if (found) {
 //  currentVm = this;
   running = true;
   try {
+   std::shared_lock<std::shared_timed_mutex> lock (classes_mutex);
    const JClass * encapsulatingClass = nullptr;
    const JMethodID * main = nullptr;
    for (auto& clazz : classes) {
-    for (auto& mid : clazz->getMethods()) {
+    for (auto& mid : clazz.second->getMethods()) {
      if (strcmp(mid->getName(), "main") == 0) {
       if (strcmp(mid->getSignature(), "([java/lang/String;)V") == 0) {
-       encapsulatingClass = clazz;
+       encapsulatingClass = clazz.second.get();
        main = mid;
        break;
       }

@@ -17,8 +17,8 @@ namespace FakeJni {
  JClass * createDummyClass(const Jvm & vm);
 
  //Utility functions for easily registering a native main method
- void createMainMethod(const Jvm & vm, _CX::main_method_t * main, JClass * clazz = nullptr);
- void createMainMethod(const Jvm & vm, std::function<_CX::main_method_t> main, JClass * clazz = nullptr);
+ void createMainMethod(const Jvm & vm, _CX::main_method_t * main, std::shared_ptr<const JClass> clazz = nullptr);
+ void createMainMethod(const Jvm & vm, std::function<_CX::main_method_t> main, std::shared_ptr<const JClass> clazz = nullptr);
 }
 
 DECLARE_NATIVE_ARRAY_DESCRIPTOR(FakeJni::JString *)

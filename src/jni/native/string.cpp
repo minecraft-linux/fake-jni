@@ -9,7 +9,6 @@
 namespace FakeJni {
  jstring NativeInterface::newString(const jchar * chars, jsize size) const {
   auto str = new JString(chars, size);
-  vm.addInstance(str);
   return *str;
  }
 
@@ -35,7 +34,6 @@ namespace FakeJni {
 
  jstring NativeInterface::newStringUTF(const char * c_str) const {
   auto str = new JString(c_str);
-  vm.addInstance(str);
   return *str;
  }
 
