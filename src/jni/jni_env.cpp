@@ -59,12 +59,13 @@ namespace FakeJni {
   auto desc = JniReferenceDescription(reference).desc;
   if (desc.isGlobal)
    throw std::runtime_error("FATAL: Reference is a global reference");
-  auto it = std::lower_bound(localFrames.begin(), localFrames.end(), desc.index,
-   [](auto const &frame, size_t index) {
-    return frame.getStart() < index;
+  auto it = std::upper_bound(localFrames.begin(), localFrames.end(), desc.index,
+   [](size_t index, auto const &frame) {
+    return index < frame.getStart();
    });
-  if (it == localFrames.end())
+  if (it == localFrames.begin())
    throw std::runtime_error("FATAL: Reference index has no matching frame");
+  --it;
   it->deleteReference(desc.index);
  }
 
@@ -72,12 +73,13 @@ namespace FakeJni {
   auto desc = JniReferenceDescription(reference).desc;
   if (desc.isGlobal)
    return vm.getGlobalReferenceTable().getReference(desc.index);
-  auto it = std::lower_bound(localFrames.begin(), localFrames.end(), desc.index,
-   [](auto const &frame, size_t index) {
-    return frame.getStart() < index;
+  auto it = std::upper_bound(localFrames.begin(), localFrames.end(), desc.index,
+   [](size_t index, auto const &frame) {
+    return index < frame.getStart();
    });
-  if (it == localFrames.end())
+  if (it == localFrames.begin())
    return std::shared_ptr<JObject>();
+  --it;
   return it->getReference(desc.index);
  }
 }

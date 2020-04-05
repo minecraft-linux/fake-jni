@@ -1,8 +1,9 @@
 #include "fake-jni/jvm.h"
 
 namespace FakeJni {
- jmethodID NativeInterface::getMethodID(jclass const jclazz, const char * const name, const char * const sig) const {
-  return const_cast<JMethodID *>(((JClass *)*jclazz)->getMethod(sig, name));
+ jmethodID NativeInterface::getMethodID(jclass const clazzRef, const char * const name, const char * const sig) const {
+  auto clazz = std::dynamic_pointer_cast<JClass>(env.resolveReference(clazzRef));
+  return const_cast<JMethodID *>(clazz->getMethod(sig, name));
  }
 
  jobject NativeInterface::callObjectMethodV(jobject const obj, jmethodID const mid, CX::va_list_t& list) const {
@@ -165,8 +166,9 @@ namespace FakeJni {
   ((JMethodID *)mid)->nonVirtualInvoke(env, clazz, obj, args);
  }
 
- jmethodID NativeInterface::getStaticMethodID(jclass const clazz, const char * const name, const char * const sig) const {
-  return const_cast<JMethodID *>(((JClass *)*clazz)->getMethod(sig, name));
+ jmethodID NativeInterface::getStaticMethodID(jclass const clazzRef, const char * const name, const char * const sig) const {
+  auto clazz = std::dynamic_pointer_cast<JClass>(env.resolveReference(clazzRef));
+  return const_cast<JMethodID *>(clazz->getMethod(sig, name));
  }
 
  jobject NativeInterface::callStaticObjectMethodV(jclass const clazz, jmethodID const mid, CX::va_list_t& list) const {

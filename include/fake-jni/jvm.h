@@ -672,13 +672,13 @@ namespace FakeJni {
  union JniReferenceDescription {
   jobject ptr;
   struct {
-   int isGlobal : 1;
-   int index : (sizeof(void *) - 1);
+   unsigned int isGlobal : 1;
+   size_t index : (sizeof(jobject) * 8 - 1);
   } desc;
 
   JniReferenceDescription(jobject ptr) : ptr(ptr)
   {}
-  JniReferenceDescription(size_t index, bool isGlobal) : desc({isGlobal, (int) index})
+  JniReferenceDescription(size_t index, bool isGlobal) : desc({isGlobal ? 1u : 0u, (unsigned int) index})
   {}
  };
 
