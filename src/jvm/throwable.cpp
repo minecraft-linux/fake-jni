@@ -7,43 +7,44 @@ JThrowable::JThrowable() noexcept :
  cause(nullptr)
 {}
 
-JThrowable::JThrowable(JString * message) :
- message(message),
+JThrowable::JThrowable(std::shared_ptr<JString> message) :
+ message(std::move(message)),
  cause(nullptr)
 {}
 
-JThrowable::JThrowable(JString * message, JThrowable * cause) :
- message(message),
- cause(cause)
+JThrowable::JThrowable(std::shared_ptr<JString> message, std::shared_ptr<JThrowable> cause) :
+ message(std::move(message)),
+ cause(std::move(cause))
 {}
 
-JThrowable::JThrowable(JThrowable * cause) :
+JThrowable::JThrowable(std::shared_ptr<JThrowable> cause) :
  message(nullptr),
- cause(cause)
+ cause(std::move(cause))
 {}
 
 JThrowable::~JThrowable() {
- if (!suppressed) {
-  delete suppressed;
- }
+ //if (!suppressed) {
+ // delete suppressed;
+ //}
 }
 
 void JThrowable::addSuppressed(JThrowable * exception) {
- suppressedExceptions.insert(exception);
+// suppressedExceptions.insert(exception);
 }
 
 const JThrowable * JThrowable::fillInStackTrace() const {
  return this;
 }
 
-const JThrowable * JThrowable::getCause() const {
+std::shared_ptr<JThrowable> JThrowable::getCause() const {
  return cause;
 }
 
-const JString * JThrowable::getMessage() const {
+std::shared_ptr<JString> JThrowable::getMessage() const {
  return message;
 }
 
+/*
 const JArray<JThrowable *>* JThrowable::getSuppressed() const {
  const auto size = suppressedExceptions.size();
  if (!suppressed) {
@@ -61,8 +62,9 @@ const JArray<JThrowable *>* JThrowable::getSuppressed() const {
  }
  return suppressed;
 }
+*/
 
-const JThrowable * JThrowable::initCause(JThrowable * cause) {
+const JThrowable * JThrowable::initCause(std::shared_ptr<JThrowable> cause) {
  this->cause = cause;
  return this;
 }
@@ -92,14 +94,14 @@ DEFINE_NATIVE_ARRAY_DESCRIPTOR(FakeJni::JThrowable *)
 //Allocate JClass descriptor for JThrowable
 DEFINE_NATIVE_DESCRIPTOR(JThrowable)
  {Constructor<JThrowable> {}},
- {Constructor<JThrowable, JString *> {}},
- {Constructor<JThrowable, JString *, JThrowable *> {}},
- {Constructor<JThrowable, JThrowable *> {}},
- {Function<&JThrowable::addSuppressed> {}, "addSuppressed"},
+ {Constructor<JThrowable, std::shared_ptr<JString>> {}},
+ {Constructor<JThrowable, std::shared_ptr<JString>, std::shared_ptr<JThrowable>> {}},
+ {Constructor<JThrowable, std::shared_ptr<JThrowable>> {}},
+// {Function<&JThrowable::addSuppressed> {}, "addSuppressed"},
  {Function<&JThrowable::fillInStackTrace>{}, "fillInStackTrace"},
  {Function<&JThrowable::getCause>{}, "getCause"},
  {Function<&JThrowable::getMessage>{}, "getMessage"},
- {Function<&JThrowable::getSuppressed>{}, "getSuppressed"},
+// {Function<&JThrowable::getSuppressed>{}, "getSuppressed"},
  {Function<&JThrowable::initCause>{}, "initCause"},
  {Function<&JThrowable::printStackTrace>{}, "printStackTrace"}
 END_NATIVE_DESCRIPTOR

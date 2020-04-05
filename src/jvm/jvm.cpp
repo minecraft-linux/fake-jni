@@ -418,7 +418,8 @@ case _signal: {\
     currentVm = nullptr;
     throw std::runtime_error("No classes define the default Java entry point: 'main([Ljava/lang/String;)V'!");
    }
-   main->invoke(this, encapsulatingClass, args);
+   LocalFrame frame (*this);
+   main->invoke(frame.getJniEnv(), encapsulatingClass, args);
   } catch(const std::exception &ex) {
    //TODO put the Jvm into an errored state so the user can handle the error
    fprintf(log, "FATAL: VM encountered an uncaught exception with message:\n%s\n", ex.what());
@@ -634,4 +635,13 @@ case _signal: {\
    throw UnwindException("unw_step() failed with error code: " + std::to_string(unw_status));
   }
  }
+
+ jobject _CX::createLocalReturnReference(const JniEnv& env, std::shared_ptr<JObject> ptr) {
+  return const_cast<JniEnv &>(env).createLocalReference(ptr);
+ }
+
+ std::shared_ptr<JObject> _CX::resolveArgumentReference(const JniEnv& env, jobject object) {
+  return env.resolveReference(object);
+ }
+
 } 

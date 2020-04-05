@@ -11,17 +11,17 @@ namespace FakeJni {
  private:
   std::set<JThrowable *> suppressedExceptions;
 
-  JString * message;
-  JThrowable * cause;
-  JArray<JThrowable *> * suppressed;
+  std::shared_ptr<JString> message;
+  std::shared_ptr<JThrowable> cause;
+  // JArray<JThrowable *> * suppressed;
 
  public:
   DEFINE_CLASS_NAME("java/lang/Throwable")
 
   JThrowable() noexcept;
-  JThrowable(JString * message);
-  JThrowable(JString * message, JThrowable * cause);
-  JThrowable(JThrowable * cause);
+  JThrowable(std::shared_ptr<JString> message);
+  JThrowable(std::shared_ptr<JString> message, std::shared_ptr<JThrowable> cause);
+  JThrowable(std::shared_ptr<JThrowable> cause);
 
   virtual ~JThrowable();
 
@@ -30,11 +30,11 @@ namespace FakeJni {
 
   void addSuppressed(JThrowable * exception);
   const JThrowable * fillInStackTrace() const;
-  const JThrowable * getCause() const;
-  const JString * getMessage() const;
-  //JArray<StackTraceElement> * getStackTrace();
-  const JArray<JThrowable *> * getSuppressed() const;
-  const JThrowable * initCause(JThrowable * cause);
+  std::shared_ptr<JThrowable> getCause() const;
+  std::shared_ptr<JString> getMessage() const;
+  // JArray<StackTraceElement> * getStackTrace();
+  // const JArray<JThrowable *> * getSuppressed() const;
+  const JThrowable * initCause(std::shared_ptr<JThrowable> cause);
   void printStackTrace() const;
   //void printStackTrace(PrintStream * s);
   //void printStackTrace(PrintWriter s);

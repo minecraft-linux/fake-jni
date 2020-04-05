@@ -34,7 +34,7 @@ namespace FakeJni {
   }
   //clean up string eventually
   auto jstrMessage = new JString(message);
-  vm.throwException(constructor->invoke(&vm, clazz, jstrMessage));
+  vm.throwException(constructor->invoke(env, clazz, jstrMessage));
   return 0;
  }
 

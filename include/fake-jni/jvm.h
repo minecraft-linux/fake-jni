@@ -54,11 +54,11 @@ break;
 #define _ASSERT_JNI_FUNCTION_COMPLIANCE \
 static_assert(\
  _CX::VerifyJniFunctionArguments<R>::verify(),\
- "Registered JNI functions may only return JNI types and pointers to JObject or derived classes!"\
+ "Registered JNI functions may only return JNI types and (shared) pointers to JObject or derived classes!"\
 );\
 static_assert(\
  _CX::VerifyJniFunctionArguments<Args...>::verify(),\
- "Registered JNI functions may only accept JNI types and pointers to JObject or derived classes!"\
+ "Registered JNI functions may only accept JNI types and (shared) pointers to JObject or derived classes!"\
 );
 
 #define _INTERNAL_INVOKE_VA_ARG(type, ffi_type) \
@@ -816,7 +816,7 @@ namespace FakeJni {
  class JClass;
 
  //Jni java/lang/Object implementation
- class JObject {
+ class JObject : public std::enable_shared_from_this<JObject> {
  public:
   //Internal fake-jni native class metadata
   //DEFINE_CLASS_NAME cant be used since this is the virtual base
@@ -1016,9 +1016,9 @@ namespace FakeJni {
 
   //template bases
   template<typename R, typename A>
-  R vInvoke(const JavaVM * vm, void * clazzOrInst, A& args) const;
+  R vInvoke(const JniEnv &env, void * clazzOrInst, A& args) const;
   template<typename R, typename A>
-  R nvInvoke(const JavaVM * vm, JClass * clazz, void * inst, A& args) const;
+  R nvInvoke(const JniEnv &env, JClass * clazz, void * inst, A& args) const;
 
  public:
   const bool isArbitrary;
@@ -1067,7 +1067,7 @@ namespace FakeJni {
   virtual ~JMethodID();
 
   template<typename R, typename A>
-  R directInvoke(const JavaVM * vm, void * clazzOrInst, A& args) const;
+  R directInvoke(const JniEnv & vm, void * clazzOrInst, A& args) const;
 
   virtual bool operator ==(const JMethodID& mid) const noexcept;
   virtual bool operator ==(const JNINativeMethod*& mid) const;
@@ -1077,11 +1077,11 @@ namespace FakeJni {
   virtual const JMethodID * findVirtualMatch(const JClass * clazz) const;
 
   //user overrides
-  virtual jvalue invoke(const JavaVM * vm, const JObject * clazzOrInst, ...) const;
-  virtual jvalue virtualInvoke(const JavaVM * vm, JObject * clazzOrObj, CX::va_list_t& list) const;
-  virtual jvalue virtualInvoke(const JavaVM * vm, JObject * clazzOrObj, const jvalue * args) const;
-  virtual jvalue nonVirtualInvoke(const JavaVM * vm, JClass * clazz, JObject * inst, CX::va_list_t& list) const;
-  virtual jvalue nonVirtualInvoke(const JavaVM * vm, JClass * clazz, JObject * inst, const jvalue * args) const;
+  virtual jvalue invoke(const JniEnv& vm, const JObject * clazzOrInst, ...) const;
+  virtual jvalue virtualInvoke(const JniEnv& vm, JObject * clazzOrObj, CX::va_list_t& list) const;
+  virtual jvalue virtualInvoke(const JniEnv& vm, JObject * clazzOrObj, const jvalue * args) const;
+  virtual jvalue nonVirtualInvoke(const JniEnv& vm, JClass * clazz, JObject * inst, CX::va_list_t& list) const;
+  virtual jvalue nonVirtualInvoke(const JniEnv& vm, JClass * clazz, JObject * inst, const jvalue * args) const;
 
   virtual jvalue virtualInvoke(const JniEnv& env, jobject clazzOrObjRef, CX::va_list_t& list) const;
   virtual jvalue virtualInvoke(const JniEnv& env, jobject clazzOrObjRef, const jvalue * args) const;
@@ -1415,6 +1415,18 @@ namespace FakeJni {
     }
    }
   };
+  template<typename T>
+  class VerifyJniFunctionArguments<std::shared_ptr<T>> {
+  public:
+   [[gnu::always_inline]]
+   inline static constexpr bool verify() {
+    if constexpr(__is_class(T)) {
+     return __is_base_of(JObject, T);
+    } else {
+     return false;
+    }
+   }
+  };
  }
 }
 
@@ -1621,7 +1633,7 @@ namespace FakeJni {
 
  //Performs virtual dispatch
  template<typename R, typename A>
- R JMethodID::vInvoke(const JavaVM * vm, void * clazzOrInst, A& args) const {
+ R JMethodID::vInvoke(const JniEnv &env, void * clazzOrInst, A& args) const {
   auto * clazz = &((JObject *)clazzOrInst)->getClass();
   if (strcmp(clazz->getName(), "java/lang/Class") == 0) {
    //Static method, no virtual dispatch
@@ -1633,16 +1645,16 @@ namespace FakeJni {
       + "' as a static method!"
     );
    }
-   return directInvoke<R, A>(vm, clazzOrInst, args);
+   return directInvoke<R, A>(env, clazzOrInst, args);
   } else {
    //Member method, virtual dispatch
-   return findVirtualMatch(clazz)->directInvoke<R, A>(vm, clazzOrInst, args);
+   return findVirtualMatch(clazz)->directInvoke<R, A>(env, clazzOrInst, args);
   }
  }
 
  //Does not perform virtual dispatch
  template<typename R, typename A>
- R JMethodID::nvInvoke(const JavaVM * vm, JClass * const clazz, void * const inst, A& args) const {
+ R JMethodID::nvInvoke(const JniEnv &env, JClass * const clazz, void * const inst, A& args) const {
   const auto mid = clazz->getMethod(signature, name);
   if (!mid) {
    throw std::runtime_error(
@@ -1653,11 +1665,11 @@ namespace FakeJni {
      + signature
      + "'!");
   }
-  return mid->template directInvoke<R, A>(vm, inst, args);
+  return mid->template directInvoke<R, A>(env, inst, args);
  }
 
  template<typename R, typename A>
- R JMethodID::directInvoke(const JavaVM * vm, void * clazzOrInst, A& args) const {
+ R JMethodID::directInvoke(const JniEnv& env, void * clazzOrInst, A& args) const {
 #define DIRECT_INVOKE_NO_RETURN_VALUE throw std::runtime_error(std::string("FATAL: '") + name + signature + "' does not return a value!");
   using arg_t = typename CX::ComponentTypeResolver<A>::type;
   static_assert(CX::MatchAny<arg_t, CX::va_list_t, jvalue>::value);
@@ -1665,8 +1677,9 @@ namespace FakeJni {
   //perform invocation
   switch (type) {
    case MEMBER_FUNC: {
-    const auto proxy = (jvalue_option (*)(void *const, member_func_t, func_arg_t))getFunctionProxy<A>();
+    const auto proxy = (jvalue_option (*)(JniEnv const &, void *const, member_func_t, func_arg_t))getFunctionProxy<A>();
     const auto option = proxy(
+     env,
      CX::union_cast<JObject *>(clazzOrInst),
      CX::union_cast<member_func_t>(CX::member_ptr_align_t{fnPtr, adj}),
      args
@@ -1679,8 +1692,8 @@ namespace FakeJni {
     }
    }
    case STATIC_FUNC: {
-    const auto proxy = (jvalue_option (*)(static_func_t, func_arg_t))getFunctionProxy<A>();
-    const auto option = proxy(CX::union_cast<static_func_t>(fnPtr), args);
+    const auto proxy = (jvalue_option (*)(JniEnv const &, static_func_t, func_arg_t))getFunctionProxy<A>();
+    const auto option = proxy(env, CX::union_cast<static_func_t>(fnPtr), args);
     if constexpr(!CX::IsSame<R, void>::value) {
      if (option.present) {
       return (R)option.value;
@@ -1689,12 +1702,11 @@ namespace FakeJni {
     }
    }
    case REGISTER_NATIVES_FUNC: {
-    LocalFrame frame (*(const Jvm *)vm);
     const auto argc = descriptor->nargs - 2;
     void * values[descriptor->nargs];
     values[0] = new JNIEnv*;
     values[1] = new jobject*;
-    *((JNIEnv **)values[0]) = &frame.getJniEnv();
+    *((JNIEnv **)values[0]) = const_cast<JniEnv*>(&env);
     *((jobject *)values[1]) = (jobject)clazzOrInst;
     //set up arguments
     const auto resolverOffset = CX::IsSame<arg_t, jvalue>::value ? argc : 0;
@@ -1733,8 +1745,8 @@ namespace FakeJni {
     }
    }
    case STL_FUNC: {
-    const auto proxy = ((jvalue_option (*)(void *, func_arg_t))getFunctionProxy<A>());
-    const auto option = proxy(fnPtr, args);
+    const auto proxy = ((jvalue_option (*)(JniEnv const &, void *, func_arg_t))getFunctionProxy<A>());
+    const auto option = proxy(env, fnPtr, args);
     if constexpr(!CX::IsSame<R, void>::value) {
      if (option.present) {
       return (R)option.value;
@@ -1743,14 +1755,12 @@ namespace FakeJni {
     }
    }
    case ARBITRARY_STL_FUNC: {
-    const auto proxy = (jvalue_option (*)(void * const*, const char *, JNIEnv *, void *, func_arg_t))getFunctionProxy<A>();
-    auto vm_ref = const_cast<JavaVM *>(vm);
-    JNIEnv * env;
-    vm_ref->GetEnv((void **)&env, JNI_VERSION_1_8);
+    const auto proxy = (jvalue_option (*)(JniEnv const &, void * const*, const char *, JNIEnv *, void *, func_arg_t))getFunctionProxy<A>();
     const auto option = proxy(
+     env,
      &fnPtr,
      signature,
-     env,
+     const_cast<JniEnv*>(&env),
      clazzOrInst,
      args
     );
@@ -1762,7 +1772,7 @@ namespace FakeJni {
     }
    }
    case COMPOSED_FUNC: {
-    return ((JMethodID *)fnPtr)->directInvoke<R, A>(vm, clazzOrInst, args);
+    return ((JMethodID *)fnPtr)->directInvoke<R, A>(env, clazzOrInst, args);
    }
   }
 #undef DIRECT_INVOKE_NO_RETURN_VALUE
@@ -1834,7 +1844,8 @@ namespace FakeJni {
    JClass& descriptor = const_cast<JClass&>(*T::getDescriptor());
    for (auto& method : descriptor.functions) {
     if (strcmp(method->getSignature(), signature) == 0 && strcmp(method->getName(), "<init>") == 0) {
-     const T * inst = method->nonVirtualInvoke(vm, &descriptor, &descriptor, args);
+     LocalFrame frame (*(Jvm const *) vm);
+     const T * inst = method->nonVirtualInvoke(frame.getJniEnv(), &descriptor, &descriptor, args);
      JObject * baseInst;
      if constexpr(_CX::JniTypeBase<T>::hasComplexHierarchy) {
       baseInst = (JObject *)T::cast::cast(inst);
