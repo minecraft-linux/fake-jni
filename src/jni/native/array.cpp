@@ -80,11 +80,12 @@ namespace FakeJni {
  }
 
  jobjectArray NativeInterface::newObjectArray(jsize size, jclass element_t, jobject initialElement) const {
-  auto arr = new JObjectArray(size);
-  for (JInt i = 0; i < size; i++) {
-   arr[i] = *CX::union_cast<JObject *>(initialElement);
-  }
-  return (jobjectArray) env.createLocalReference(std::shared_ptr<JObject>(arr));
+  throw std::runtime_error("FATAL: 'newObjectArray' is unimplemented");
+//  auto arr = new JObjectArray(size);
+//  for (JInt i = 0; i < size; i++) {
+//   arr[i] = *CX::union_cast<JObject *>(initialElement);
+//  }
+//  return (jobjectArray) env.createLocalReference(std::shared_ptr<JObject>(arr));
  }
 
  jobject NativeInterface::getObjectArrayElement(jobjectArray arrRef, jsize index) const {
@@ -93,8 +94,9 @@ namespace FakeJni {
  }
 
  void NativeInterface::setObjectArrayElement(jobjectArray arrRef, jsize index, jobject obj) const {
-  auto arr = env.resolveReference(arrRef);
-  ((JObjectArray *) arr.get())[index] = *CX::union_cast<JObject *>(obj);
+  throw std::runtime_error("FATAL: 'setObjectArrayElement' is unimplemented");
+//  auto arr = env.resolveReference(arrRef);
+//  ((JObjectArray *) arr.get())[index] = *CX::union_cast<JObject *>(obj);
  }
 
  jbooleanArray NativeInterface::newBooleanArray(jsize size) const {
