@@ -28,6 +28,7 @@
 #include <shared_mutex>
 #include <utility>
 #include <csignal>
+#include <stack>
 
 //Internal JFieldID macros
 #define _ASSERT_FIELD_JNI_COMPLIANCE \
@@ -677,7 +678,22 @@ namespace FakeJni {
   static JniEnv * getCurrentEnv() noexcept;
 
  private:
+  struct JniLocalFrame {
+   std::vector<std::shared_ptr<JObject>> references;
+   std::vector<size_t> referencesNextIndex;
+   size_t lastReferenceIndex = 0;
+
+   JniLocalFrame(size_t size);
+
+   void resizeFrame(size_t size);
+   void ensureSize(size_t size);
+
+   size_t reserveReference();
+   void returnReference(size_t index);
+  };
+
   NativeInterface * native;
+  std::stack<JniLocalFrame, std::vector<JniLocalFrame>> localFrames;
 
  public:
   Jvm& vm;
@@ -694,6 +710,11 @@ namespace FakeJni {
   void setNativeInterface();
   virtual void setNativeInterface(NativeInterface * ni);
   virtual NativeInterface& getNativeInterface() const;
+
+  void pushLocalFrame(size_t frameSize = 16);
+  void popLocalFrame();
+
+  void ensureLocalCapacity(size_t frameSize);
  };
 
  class JvmtiEnv : public jvmtiEnv {
@@ -1292,8 +1313,10 @@ namespace FakeJni {
  struct LocalFrame : JniEnvContext {
 
   LocalFrame(const Jvm &vm, size_t size = 16) : JniEnvContext(vm) {
+   getJniEnv().pushLocalFrame(size);
   }
   ~LocalFrame() {
+   getJniEnv().popLocalFrame();
   }
 
  };

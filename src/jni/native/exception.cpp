@@ -64,13 +64,15 @@ namespace FakeJni {
   vm.fatalError(message);
  }
 
-//TODO implement
- jint NativeInterface::pushLocalFrame(jint) const {
+ jint NativeInterface::pushLocalFrame(jint size) const {
+  env.pushLocalFrame(size);
   return 0;
  }
 
-//TODO implement
- jobject NativeInterface::popLocalFrame(jobject) const {
+ jobject NativeInterface::popLocalFrame(jobject move) const {
+  if (move != nullptr)
+   throw std::runtime_error("Moving references into parent frame is not supported");
+  env.popLocalFrame();
   return nullptr;
  }
 }
