@@ -63,8 +63,8 @@ namespace FakeJni {
   log(log),
   invoke(new InvokeInterface(*this)),
   jvmti(new JvmtiInterface(*this)),
-  jniEnv(new JniEnv(*this)),
   jvmtiEnv(new JvmtiEnv(*this)),
+  jniEnvFactory([this]() { return std::make_unique<JniEnv>(*this); }),
   libraries{true},
   classes{true}
  {
@@ -197,13 +197,8 @@ case _signal: {\
   return *jvmti;
  }
 
- inline void Jvm::setJniEnv(JniEnv * const env) {
-  delete jniEnv;
-  jniEnv = env;
- }
-
- inline JniEnv& Jvm::getJniEnv() const {
-  return *jniEnv;
+ inline std::unique_ptr<JniEnv> Jvm::createJniEnv() const {
+  return jniEnvFactory();
  }
 
  inline void Jvm::setJvmtiEnv(JvmtiEnv * const env) {
@@ -269,7 +264,6 @@ case _signal: {\
   instances.clear();
   delete jvmtiEnv;
   delete jvmti;
-  delete jniEnv;
   delete invoke;
   delete[] uuid;
  }

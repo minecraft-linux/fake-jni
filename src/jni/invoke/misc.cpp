@@ -2,7 +2,10 @@
 
 namespace FakeJni {
  jint InvokeInterface::getEnv(Jvm * vm, void ** penv, jint version) const {
-  *penv = (void *)((JNIEnv *)&vm->getJniEnv());
+  auto env = JniEnv::getCurrentEnv();
+  if (env == nullptr || &env->vm != vm)
+   return JNI_ERR;
+  *penv = (void *)((JNIEnv *)env);
   return JNI_OK;
  }
 

@@ -671,7 +671,14 @@ namespace FakeJni {
 
  class JniEnv : public JNIEnv {
  private:
+  static thread_local JniEnv * currentEnv;
+
+ public:
+  static JniEnv * getCurrentEnv() noexcept;
+
+ private:
   NativeInterface * native;
+
  public:
   Jvm& vm;
 
@@ -679,7 +686,7 @@ namespace FakeJni {
   //jni/jni_env.cpp
   explicit JniEnv(const Jvm& vm) noexcept;
   explicit JniEnv(const JniEnv&) = delete;
-  virtual ~JniEnv() = default;
+  virtual ~JniEnv();
   JniEnv& operator=(const JniEnv& env) = delete;
   virtual const Jvm& getVM() const noexcept;
 
@@ -1153,8 +1160,8 @@ namespace FakeJni {
   FILE * const log;
   InvokeInterface * invoke;
   JvmtiInterface * jvmti;
-  JniEnv * jniEnv;
   JvmtiEnv * jvmtiEnv;
+  CX::Lambda<std::unique_ptr<JniEnv> ()> jniEnvFactory;
 
   //TODO on the first invocation of any JNI, JNIEnv or JVMTI functions, set this flag to true
   bool running = false;
@@ -1212,9 +1219,8 @@ namespace FakeJni {
   virtual JvmtiInterface& getJvmtiInterface() const;
 
   template<typename T>
-  void setJniEnv();
-  virtual void setJniEnv(JniEnv * env);
-  virtual JniEnv& getJniEnv() const;
+  void setJniEnvType();
+  virtual std::unique_ptr<JniEnv> createJniEnv() const;
 
   template<typename T>
   void setJvmtiEnv();
@@ -1257,6 +1263,39 @@ namespace FakeJni {
   [[noreturn]]
   virtual void fatalError(const char * message, ucontext_t * context) const;
   virtual void printBacktrace(ucontext_t * context = nullptr) const;
+ };
+
+ class JniEnvContext {
+ private:
+  JniEnv *env;
+  bool ownsEnv = false;
+
+ public:
+  JniEnvContext(const Jvm &vm) {
+   env = JniEnv::getCurrentEnv();
+   if (env == nullptr || &env->vm != &vm) {
+    env = vm.createJniEnv().release();
+    ownsEnv = true;
+   }
+  }
+  ~JniEnvContext() {
+   if (ownsEnv)
+    delete env;
+  }
+
+  JniEnv &getJniEnv() const {
+   return *env;
+  }
+
+ };
+
+ struct LocalFrame : JniEnvContext {
+
+  LocalFrame(const Jvm &vm, size_t size = 16) : JniEnvContext(vm) {
+  }
+  ~LocalFrame() {
+  }
+
  };
 
  //Template glue code for native class registration
@@ -1600,11 +1639,12 @@ namespace FakeJni {
     }
    }
    case REGISTER_NATIVES_FUNC: {
+    LocalFrame frame (*(const Jvm *)vm);
     const auto argc = descriptor->nargs - 2;
     void * values[descriptor->nargs];
     values[0] = new JNIEnv*;
     values[1] = new jobject*;
-    *((JNIEnv **)values[0]) = &((const Jvm *)vm)->getJniEnv();
+    *((JNIEnv **)values[0]) = &frame.getJniEnv();
     *((jobject *)values[1]) = (jobject)clazzOrInst;
     //set up arguments
     const auto resolverOffset = CX::IsSame<arg_t, jvalue>::value ? argc : 0;
@@ -1710,9 +1750,9 @@ namespace FakeJni {
  }
 
  template<typename T>
- void Jvm::setJniEnv() {
+ void Jvm::setJniEnvType() {
   static_assert(__is_base_of(JniEnv, T), "You must register a subtype of JniEnv!");
-  setJniEnv(new T{*this});
+  jniEnvFactory = [this]() { return std::make_unique<T>(*this); };
  }
 
  template<typename T>
