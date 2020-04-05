@@ -36,7 +36,10 @@ namespace FakeJni {
  }
 
  void JniEnv::pushLocalFrame(size_t frameSize) {
-  localFrames.emplace_back(frameSize);
+  auto start = 1;
+  if (!localFrames.empty())
+   start = localFrames.back().getStart() + localFrames.back().getSize();
+  localFrames.emplace_back(JniReferenceTable(frameSize, start));
  }
 
  void JniEnv::popLocalFrame() {
