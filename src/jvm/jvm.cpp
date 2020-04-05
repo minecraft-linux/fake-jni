@@ -83,7 +83,6 @@ namespace FakeJni {
   registerClass<JClass>();
   registerClass<JString>();
   registerClass<JThrowable>();
-  /*TODO: Reenable arrays
   registerClass<JArray<JThrowable *>>();
 //  registerClass<JWeak>();
   registerClass<JBooleanArray>();
@@ -95,7 +94,6 @@ namespace FakeJni {
   registerClass<JLongArray>();
   registerClass<JDoubleArray>();
   registerClass<JObjectArray>();
-   */
   registerClass(voidDescriptor);
   registerClass(booleanDescriptor);
   registerClass(byteDescriptor);
@@ -382,7 +380,7 @@ case _signal: {\
 
  void Jvm::start(const JObject * oArgs) {
   if (oArgs) {
-   if (strcmp(oArgs->getClass().getName(), JArray<JString *>::descriptor.getName())) {
+   if (strcmp(oArgs->getClass().getName(), JArray<JString *>::getDescriptor()->getName())) {
     throw std::runtime_error("FATAL: JVM entry point only accepts an array of stings!");
    }
   } else {
