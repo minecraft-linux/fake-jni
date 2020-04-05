@@ -8,16 +8,16 @@
 
 namespace FakeJni {
  jstring NativeInterface::newString(const jchar * chars, jsize size) const {
-  auto str = new JString(chars, size);
-  return *str;
+  return (jstring) env.createLocalReference(std::make_shared<JString>(chars, size));
  }
 
- jsize NativeInterface::getStringLength(jstring jstr) const {
-  return CX::union_cast<JString *>(jstr)->getLength();
+ jsize NativeInterface::getStringLength(jstring strRef) const {
+  auto str = std::dynamic_pointer_cast<JString>(env.resolveReference(strRef));
+  return str->getLength();
  }
 
- jchar * NativeInterface::getStringChars(jstring jstr, jboolean * copy) const {
-  auto str = CX::union_cast<JString *>(jstr);
+ jchar * NativeInterface::getStringChars(jstring strRef, jboolean * copy) const {
+  auto str = std::dynamic_pointer_cast<JString>(env.resolveReference(strRef));
   if (copy) {
    *copy = JNI_TRUE;
   }
@@ -33,16 +33,16 @@ namespace FakeJni {
  }
 
  jstring NativeInterface::newStringUTF(const char * c_str) const {
-  auto str = new JString(c_str);
-  return *str;
+  return (jstring) env.createLocalReference(std::make_shared<JString>(c_str));
  }
 
- jsize NativeInterface::getStringUTFLength(jstring jstr) const {
-  return CX::union_cast<JString *>(jstr)->getLength();
+ jsize NativeInterface::getStringUTFLength(jstring strRef) const {
+  auto str = std::dynamic_pointer_cast<JString>(env.resolveReference(strRef));
+  return str->getLength();
  }
 
- char * NativeInterface::getStringUTFChars(jstring jstr, jboolean * copy) const {
-  auto str = CX::union_cast<JString *>(jstr);
+ char * NativeInterface::getStringUTFChars(jstring strRef, jboolean * copy) const {
+  auto str = std::dynamic_pointer_cast<JString>(env.resolveReference(strRef));
   if (copy) {
    *copy = JNI_TRUE;
   }
@@ -57,8 +57,8 @@ namespace FakeJni {
   delete[] c_str;
  }
 
- void NativeInterface::getStringRegion(jstring jstr, jsize start, jsize len, jchar * buf) const {
-  auto str = CX::union_cast<JString *>(jstr);
+ void NativeInterface::getStringRegion(jstring strRef, jsize start, jsize len, jchar * buf) const {
+  auto str = std::dynamic_pointer_cast<JString>(env.resolveReference(strRef));
   auto data = str->getArray();
   const auto slen = str->getLength();
   if (0 > len || start + len > slen) {
@@ -70,8 +70,8 @@ namespace FakeJni {
   }
  }
 
- void NativeInterface::getStringUTFRegion(jstring jstr, jsize start, jsize len, char * buf) const {
-  auto str = CX::union_cast<JString *>(jstr);
+ void NativeInterface::getStringUTFRegion(jstring strRef, jsize start, jsize len, char * buf) const {
+  auto str = std::dynamic_pointer_cast<JString>(env.resolveReference(strRef));
   auto data = (char *)str->getArray();
   const auto slen = str->getLength();
   if (0 > len || start + len > slen) {
