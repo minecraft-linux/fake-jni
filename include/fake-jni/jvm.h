@@ -1157,7 +1157,7 @@ namespace FakeJni {
   JvmtiEnv * jvmtiEnv;
 
   //TODO on the first invocation of any JNI, JNIEnv or JVMTI functions, set this flag to true
-  bool running;
+  bool running = false;
 
   PointerList<const Library *> libraries;
   PointerList<const JClass *> classes;
