@@ -5,14 +5,20 @@ namespace FakeJni {
   JNIEnv(),
   vm(const_cast<Jvm &>(vm))
  {
-  functions = &vm.getNativeInterface();
+  setNativeInterface<NativeInterface>();
  }
 
  const Jvm& JniEnv::getVM() const noexcept {
   return vm;
  }
 
- void JniEnv::setNativeInterface(FakeJni::NativeInterface &interface) noexcept {
-  functions = &interface;
+ inline void JniEnv::setNativeInterface(NativeInterface * const ni) {
+  delete native;
+  native = ni;
+  functions = ni;
+ }
+
+ inline NativeInterface& JniEnv::getNativeInterface() const {
+  return *native;
  }
 }

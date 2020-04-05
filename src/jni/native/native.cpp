@@ -2,9 +2,10 @@
 #include "fake-jni/jvm.h"
 
 namespace FakeJni {
- NativeInterface::NativeInterface(const Jvm& vm) :
+ NativeInterface::NativeInterface(JniEnv& env) :
   JNINativeInterface_(),
-  vm(const_cast<Jvm &>(vm))
+  vm(env.vm),
+  env(env)
  {
   reserved0
    = reserved1

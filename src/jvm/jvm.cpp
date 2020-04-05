@@ -62,7 +62,6 @@ namespace FakeJni {
   uuid(generateJvmUuid()),
   log(log),
   invoke(new InvokeInterface(*this)),
-  native(new NativeInterface(*this)),
   jvmti(new JvmtiInterface(*this)),
   jniEnv(new JniEnv(*this)),
   jvmtiEnv(new JvmtiEnv(*this)),
@@ -188,16 +187,6 @@ case _signal: {\
   return *invoke;
  }
 
- inline void Jvm::setNativeInterface(NativeInterface * const ni) {
-  delete native;
-  native = ni;
-  jniEnv->functions = ni;
- }
-
- inline NativeInterface& Jvm::getNativeInterface() const {
-  return *native;
- }
-
  inline void Jvm::setJvmtiInterface(JvmtiInterface * const ji) {
   delete jvmti;
   jvmti = ji;
@@ -209,10 +198,8 @@ case _signal: {\
  }
 
  inline void Jvm::setJniEnv(JniEnv * const env) {
-  auto interface = (NativeInterface *)jniEnv->functions;
   delete jniEnv;
   jniEnv = env;
-  jniEnv->setNativeInterface(*interface);
  }
 
  inline JniEnv& Jvm::getJniEnv() const {
@@ -283,7 +270,6 @@ case _signal: {\
   delete jvmtiEnv;
   delete jvmti;
   delete jniEnv;
-  delete native;
   delete invoke;
   delete[] uuid;
  }

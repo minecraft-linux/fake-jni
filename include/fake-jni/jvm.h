@@ -197,6 +197,8 @@ namespace FakeJni {
   virtual jint attachCurrentThreadAsDaemon(Jvm *vm, void **penv, void *args) const;
  };
 
+ class JniEnv;
+
  class NativeInterface : public JNINativeInterface_ {
  private:
   //native_vararg.cpp
@@ -234,9 +236,10 @@ namespace FakeJni {
 
  public:
   Jvm& vm;
+  JniEnv &env;
 
   //jni/native/native.cpp
-  explicit NativeInterface(const Jvm& vm);
+  explicit NativeInterface(JniEnv& env);
   explicit NativeInterface(const NativeInterface &) = delete;
   virtual ~NativeInterface() = default;
 //  virtual NativeInterface& operator=(const NativeInterface& ni) noexcept;
@@ -667,6 +670,8 @@ namespace FakeJni {
  };
 
  class JniEnv : public JNIEnv {
+ private:
+  NativeInterface * native;
  public:
   Jvm& vm;
 
@@ -677,7 +682,11 @@ namespace FakeJni {
   virtual ~JniEnv() = default;
   JniEnv& operator=(const JniEnv& env) = delete;
   virtual const Jvm& getVM() const noexcept;
-  virtual void setNativeInterface(NativeInterface& interface) noexcept;
+
+  template<typename T>
+  void setNativeInterface();
+  virtual void setNativeInterface(NativeInterface * ni);
+  virtual NativeInterface& getNativeInterface() const;
  };
 
  class JvmtiEnv : public jvmtiEnv {
@@ -1143,7 +1152,6 @@ namespace FakeJni {
   jthrowable exception = nullptr;
   FILE * const log;
   InvokeInterface * invoke;
-  NativeInterface * native;
   JvmtiInterface * jvmti;
   JniEnv * jniEnv;
   JvmtiEnv * jvmtiEnv;
@@ -1197,11 +1205,6 @@ namespace FakeJni {
   void setInvokeInterface();
   virtual void setInvokeInterface(InvokeInterface * ii);
   virtual InvokeInterface& getInvokeInterface() const;
-
-  template<typename T>
-  void setNativeInterface();
-  virtual void setNativeInterface(NativeInterface * ni);
-  virtual NativeInterface& getNativeInterface() const;
 
   template<typename T>
   void setJvmtiInterface();
@@ -1701,12 +1704,6 @@ namespace FakeJni {
  }
 
  template<typename T>
- void Jvm::setNativeInterface() {
-  static_assert(__is_base_of(NativeInterface, T), "You must register a subtype of NativeInterface!");
-  setNativeInterface(new T{*this});
- }
-
- template<typename T>
  void Jvm::setJvmtiInterface() {
   static_assert(__is_base_of(JvmtiInterface, T), "You must register a subtype of JvmtiInterface!");
   setJvmtiInterface(new T{*this});
@@ -1722,6 +1719,13 @@ namespace FakeJni {
  void Jvm::setJvmtiEnv() {
   static_assert(__is_base_of(JvmtiEnv, T), "You must register a subtype of JvmtiEnv!");
   setJvmtiEnv(new T{*this});
+ }
+
+ // JniEnv template members
+ template<typename T>
+ void JniEnv::setNativeInterface() {
+  static_assert(__is_base_of(NativeInterface, T), "You must register a subtype of NativeInterface!");
+  setNativeInterface(new T{*this});
  }
 
  //_CX::JClassImpl template members
