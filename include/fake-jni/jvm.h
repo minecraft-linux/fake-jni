@@ -670,6 +670,22 @@ namespace FakeJni {
   virtual jvmtiError getStackTrace(jvmtiEnv* env, jthread thread, jint start_depth, jint max_frame_count, jvmtiFrameInfo* frame_buffer, jint* count_ptr) const;
  };
 
+ struct JniReferenceTable {
+ private:
+  std::vector<std::shared_ptr<JObject>> references;
+  std::vector<size_t> referencesNextIndex;
+  size_t lastReferenceIndex = 0;
+
+  size_t reserveReference();
+  void returnReference(size_t index);
+
+ public:
+  JniReferenceTable(size_t size);
+
+  void resizeFrame(size_t size);
+  void ensureSize(size_t size);
+ };
+
  class JniEnv : public JNIEnv {
  private:
   static thread_local JniEnv * currentEnv;
@@ -678,22 +694,8 @@ namespace FakeJni {
   static JniEnv * getCurrentEnv() noexcept;
 
  private:
-  struct JniLocalFrame {
-   std::vector<std::shared_ptr<JObject>> references;
-   std::vector<size_t> referencesNextIndex;
-   size_t lastReferenceIndex = 0;
-
-   JniLocalFrame(size_t size);
-
-   void resizeFrame(size_t size);
-   void ensureSize(size_t size);
-
-   size_t reserveReference();
-   void returnReference(size_t index);
-  };
-
   NativeInterface * native;
-  std::stack<JniLocalFrame, std::vector<JniLocalFrame>> localFrames;
+  std::stack<JniReferenceTable, std::vector<JniReferenceTable>> localFrames;
 
  public:
   Jvm& vm;
