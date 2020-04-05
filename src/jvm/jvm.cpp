@@ -9,6 +9,7 @@
 #include <polyfill/to_string.h>
 
 #define UNW_LOCAL_ONLY
+#include <fake-jni/jvm.h>
 #include <libunwind.h>
 
 #define DEFAULT_MANGLED_SYMBOL_NAME_CACHE 4096
@@ -65,6 +66,7 @@ namespace FakeJni {
   jvmti(new JvmtiInterface(*this)),
   jvmtiEnv(new JvmtiEnv(*this)),
   jniEnvFactory([this]() { return std::make_unique<JniEnv>(*this); }),
+  globalRefs(128),
   libraries{true},
   classes{true}
  {
@@ -254,6 +256,22 @@ case _signal: {\
 
  bool Jvm::isRunning() const {
   return running;
+ }
+
+ jobject Jvm::createGlobalReference(std::shared_ptr<FakeJni::JObject> object) {
+  auto index = globalRefs.createReference(std::move(object));
+  return JniReferenceDescription(index, true).ptr;
+ }
+
+ void Jvm::deleteGlobalReference(jobject reference) {
+  auto desc = JniReferenceDescription(reference).desc;
+  if (!desc.isGlobal)
+   throw std::runtime_error("FATAL: Reference is a local reference");
+  globalRefs.deleteReference(desc.index);
+ }
+
+ JniReferenceTable& Jvm::getGlobalReferenceTable() {
+  return globalRefs;
  }
 
  Jvm::~Jvm() {

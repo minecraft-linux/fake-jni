@@ -28,7 +28,6 @@
 #include <shared_mutex>
 #include <utility>
 #include <csignal>
-#include <stack>
 
 //Internal JFieldID macros
 #define _ASSERT_FIELD_JNI_COMPLIANCE \
@@ -670,8 +669,22 @@ namespace FakeJni {
   virtual jvmtiError getStackTrace(jvmtiEnv* env, jthread thread, jint start_depth, jint max_frame_count, jvmtiFrameInfo* frame_buffer, jint* count_ptr) const;
  };
 
+ union JniReferenceDescription {
+  jobject ptr;
+  struct {
+   int isGlobal : 1;
+   int index : (sizeof(void *) - 1);
+  } desc;
+
+  JniReferenceDescription(jobject ptr) : ptr(ptr)
+  {}
+  JniReferenceDescription(size_t index, bool isGlobal) : desc({isGlobal, (int) index})
+  {}
+ };
+
  struct JniReferenceTable {
  private:
+  size_t startIndex;
   std::vector<std::shared_ptr<JObject>> references;
   std::vector<size_t> referencesNextIndex;
   size_t lastReferenceIndex = 0;
@@ -680,10 +693,17 @@ namespace FakeJni {
   void returnReference(size_t index);
 
  public:
-  JniReferenceTable(size_t size);
+  JniReferenceTable(size_t size, size_t start = 0);
+
+  size_t getStart() const { return startIndex; }
+  size_t getSize() const { return references.size(); }
 
   void resizeFrame(size_t size);
   void ensureSize(size_t size);
+
+  size_t createReference(std::shared_ptr<JObject> ref);
+  void deleteReference(size_t index);
+  std::shared_ptr<JObject> getReference(size_t index);
  };
 
  class JniEnv : public JNIEnv {
@@ -695,7 +715,7 @@ namespace FakeJni {
 
  private:
   NativeInterface * native;
-  std::stack<JniReferenceTable, std::vector<JniReferenceTable>> localFrames;
+  std::vector<JniReferenceTable> localFrames;
 
  public:
   Jvm& vm;
@@ -717,6 +737,11 @@ namespace FakeJni {
   void popLocalFrame();
 
   void ensureLocalCapacity(size_t frameSize);
+
+  jobject createLocalReference(std::shared_ptr<JObject> object);
+  void deleteLocalReference(jobject reference);
+
+  std::shared_ptr<JObject> resolveReference(jobject reference);
  };
 
  class JvmtiEnv : public jvmtiEnv {
@@ -1185,6 +1210,7 @@ namespace FakeJni {
   JvmtiInterface * jvmti;
   JvmtiEnv * jvmtiEnv;
   CX::Lambda<std::unique_ptr<JniEnv> ()> jniEnvFactory;
+  JniReferenceTable globalRefs;
 
   //TODO on the first invocation of any JNI, JNIEnv or JVMTI functions, set this flag to true
   bool running = false;
@@ -1259,6 +1285,10 @@ namespace FakeJni {
   virtual bool addInstance(JObject * inst);
   virtual bool removeInstance(JObject * inst);
   virtual bool isRunning() const;
+
+  jobject createGlobalReference(std::shared_ptr<JObject> object);
+  void deleteGlobalReference(jobject reference);
+  JniReferenceTable &getGlobalReferenceTable();
 
   template<typename T>
   bool registerClass();

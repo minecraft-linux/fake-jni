@@ -1,113 +1,58 @@
 #include "fake-jni/jvm.h"
 #include "fake-jni/weak.h"
 
-#include <stdexcept>
 #include <algorithm>
+#include <fake-jni/jvm.h>
+#include <stdexcept>
 
 namespace FakeJni {
  jobjectRefType NativeInterface::getObjectRefType(jobject const jobj) const {
-  auto& refs = vm.getReferences();
-  if (refs.find(jobj) != refs.end()) {
-   return refs[jobj];
-  }
-  return jobjectRefType::JNIInvalidRefType;
+  if (!env.resolveReference(jobj))
+   return jobjectRefType::JNIInvalidRefType;
+  if (JniReferenceDescription(jobj).desc.isGlobal)
+   return jobjectRefType::JNIGlobalRefType;
+  return jobjectRefType::JNILocalRefType;
  }
 
  jobject NativeInterface::newGlobalRef(jobject const jobj) const {
-  auto& refs = vm.getReferences();
-  if (refs.find(jobj) == refs.end()) {
-   vm.getReferences()[jobj] = jobjectRefType::JNIGlobalRefType;
-  }
-#ifdef FAKE_JNI_DEBUG
-  else {
-   fprintf(
-    vm.getLog(),
-    "WARNING: Tried to create global reference to an object with a previously initialized reference type!"
-   );
-  }
-#endif
-  return jobj;
+  auto ref = env.resolveReference(jobj);
+  if (!ref)
+   throw std::runtime_error("FATAL: Invalid reference");
+  return vm.createGlobalReference(ref);
  }
 
  void NativeInterface::deleteGlobalRef(jobject const jobj) const {
-  auto& refs = vm.getReferences();
-  if (refs.find(jobj) != refs.end()) {
-   if (refs[jobj] == jobjectRefType::JNIGlobalRefType) {
-    refs.erase(jobj);
-   }
-  }
-#ifdef FAKE_JNI_DEBUG
-  else {
-   fprintf(
-    vm.getLog(),
-    "WARNING: Tried to delete non-existent global reference!"
-   );
-  }
-#endif
+  vm.deleteGlobalReference(jobj);
  }
 
  jobject NativeInterface::newLocalRef(jobject const jobj) const {
-  auto& refs = vm.getReferences();
-  if (refs.find(jobj) == refs.end()) {
-   vm.getReferences()[jobj] = jobjectRefType::JNILocalRefType;
-  }
-#ifdef FAKE_JNI_DEBUG
-  else {
-   fprintf(
-    vm.getLog(),
-    "WARNING: Tried to create local reference to an object with a previously initialized reference type!"
-   );
-  }
-#endif
-  return jobj;
+  auto ref = env.resolveReference(jobj);
+  if (!ref)
+   throw std::runtime_error("FATAL: Invalid reference");
+  return env.createLocalReference(ref);
  }
 
  void NativeInterface::deleteLocalRef(jobject const jobj) const {
-  auto& refs = vm.getReferences();
-  if (refs.find(jobj) != refs.end()) {
-   if (refs[jobj] == jobjectRefType::JNILocalRefType) {
-    refs.erase(jobj);
-   }
-  }
-#ifdef FAKE_JNI_DEBUG
-  else {
-   fprintf(
-    vm.getLog(),
-    "WARNING: Tried to delete non-existent local reference!"
-   );
-  }
-#endif
+  env.deleteLocalReference(jobj);
  }
 
  jweak NativeInterface::newWeakGlobalRef(jobject const jobj) const {
-  auto& refs = vm.getReferences();
-  if (refs.find(jobj) == refs.end()) {
-   vm.getReferences()[jobj] = jobjectRefType::JNIWeakGlobalRefType;
-  }
 #ifdef FAKE_JNI_DEBUG
-  else {
-   fprintf(
-    vm.getLog(),
-    "WARNING: Tried to create weak global reference to an object with a previously initialized reference type!"
-   );
-  }
+  fprintf(
+   vm.getLog(),
+   "WARNING: Creating a weak global reference, which is not supported"
+  );
 #endif
-  return *jobj;
+  return (jweak) newGlobalRef(jobj);
  }
 
  void NativeInterface::deleteWeakGlobalRef(jweak const weak) const {
-  jobject const jobj = *weak;
-  auto& refs = vm.getReferences();
-  if (refs.find(jobj) != refs.end()) {
-   refs.erase(jobj);
-  }
 #ifdef FAKE_JNI_DEBUG
-  else {
-   fprintf(
-    vm.getLog(),
-    "WARNING: Tried to delete non-existent global weak reference!"
-   );
-  }
+  fprintf(
+      vm.getLog(),
+      "WARNING: Destroying a weak global reference, which is not supported"
+  );
 #endif
+  deleteGlobalRef((jobject) weak);
  }
 }

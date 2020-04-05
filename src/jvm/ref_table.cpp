@@ -1,7 +1,9 @@
 #include "fake-jni/jvm.h"
 
 namespace FakeJni {
- JniReferenceTable::JniReferenceTable(size_t size) {
+ JniReferenceTable::JniReferenceTable(size_t size, size_t start) :
+   startIndex(start)
+ {
   resizeFrame(size);
  }
 
@@ -43,4 +45,26 @@ namespace FakeJni {
   lastReferenceIndex = index;
  }
 
+ size_t JniReferenceTable::createReference(std::shared_ptr<JObject> ref) {
+  auto ret = reserveReference();
+  references[ret] = std::move(ref);
+  return startIndex + ret;
+ }
+
+ void JniReferenceTable::deleteReference(size_t index) {
+  index -= startIndex;
+  if (index < 0 || index > references.size())
+   throw std::runtime_error("FATAL: Invalid out-of-bounds reference index");
+  if (!references[index])
+   throw std::runtime_error("FATAL: Invalid empty reference");
+  references[index].reset();
+  returnReference(index);
+ }
+
+ std::shared_ptr<JObject> JniReferenceTable::getReference(size_t index) {
+  index -= startIndex;
+  if (index < 0 || index > references.size())
+   return std::shared_ptr<JObject>();
+  return references[index];
+ }
 }
