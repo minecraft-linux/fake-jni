@@ -703,7 +703,7 @@ namespace FakeJni {
 
   size_t createReference(std::shared_ptr<JObject> ref);
   void deleteReference(size_t index);
-  std::shared_ptr<JObject> getReference(size_t index);
+  std::shared_ptr<JObject> getReference(size_t index) const;
  };
 
  class JniEnv : public JNIEnv {
@@ -741,7 +741,7 @@ namespace FakeJni {
   jobject createLocalReference(std::shared_ptr<JObject> object);
   void deleteLocalReference(jobject reference);
 
-  std::shared_ptr<JObject> resolveReference(jobject reference);
+  std::shared_ptr<JObject> resolveReference(jobject reference) const;
  };
 
  class JvmtiEnv : public jvmtiEnv {
@@ -1077,10 +1077,15 @@ namespace FakeJni {
 
   //user overrides
   virtual jvalue invoke(const JavaVM * vm, const JObject * clazzOrInst, ...) const;
-  virtual jvalue virtualInvoke(const JavaVM * vm, void * clazzOrObj, CX::va_list_t& list) const;
-  virtual jvalue virtualInvoke(const JavaVM * vm, void * clazzOrObj, const jvalue * args) const;
-  virtual jvalue nonVirtualInvoke(const JavaVM * vm, JClass * clazz, void * inst, CX::va_list_t& list) const;
-  virtual jvalue nonVirtualInvoke(const JavaVM * vm, JClass * clazz, void * inst, const jvalue * args) const;
+  virtual jvalue virtualInvoke(const JavaVM * vm, JObject * clazzOrObj, CX::va_list_t& list) const;
+  virtual jvalue virtualInvoke(const JavaVM * vm, JObject * clazzOrObj, const jvalue * args) const;
+  virtual jvalue nonVirtualInvoke(const JavaVM * vm, JClass * clazz, JObject * inst, CX::va_list_t& list) const;
+  virtual jvalue nonVirtualInvoke(const JavaVM * vm, JClass * clazz, JObject * inst, const jvalue * args) const;
+
+  virtual jvalue virtualInvoke(const JniEnv& env, jobject clazzOrObjRef, CX::va_list_t& list) const;
+  virtual jvalue virtualInvoke(const JniEnv& env, jobject clazzOrObjRef, const jvalue * args) const;
+  virtual jvalue nonVirtualInvoke(const JniEnv& env, jclass clazz, jobject inst, CX::va_list_t& list) const;
+  virtual jvalue nonVirtualInvoke(const JniEnv& env, jclass clazz, jobject inst, const jvalue * args) const;
  };
 
  //Template glue code for native class registration

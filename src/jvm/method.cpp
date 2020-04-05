@@ -390,31 +390,48 @@ namespace FakeJni {
   return directInvoke<jvalue>(vm, (void *)clazzOrInst, list);
  }
 
- jvalue JMethodID::virtualInvoke(const JavaVM * vm, void * clazzOrObj, CX::va_list_t& list) const {
+ jvalue JMethodID::virtualInvoke(const JavaVM * vm, JObject * clazzOrObj, CX::va_list_t& list) const {
   switch (type) {
    case COMPOSED_FUNC: return ((JMethodID *)fnPtr)->virtualInvoke(vm, clazzOrObj, list);
    default: return vInvoke<jvalue>(vm, clazzOrObj, list);
   }
  }
 
- jvalue JMethodID::virtualInvoke(const JavaVM * vm, void * clazzOrObj, const jvalue * args) const {
+ jvalue JMethodID::virtualInvoke(const JavaVM * vm, JObject * clazzOrObj, const jvalue * args) const {
   switch (type) {
    case COMPOSED_FUNC: return ((JMethodID *)fnPtr)->virtualInvoke(vm, clazzOrObj, args);
    default: return vInvoke<jvalue>(vm, clazzOrObj, args);
   }
  }
 
- jvalue JMethodID::nonVirtualInvoke(const JavaVM * vm, JClass * clazz, void * inst, CX::va_list_t& list) const {
+ jvalue JMethodID::nonVirtualInvoke(const JavaVM * vm, JClass * clazz, JObject * inst, CX::va_list_t& list) const {
   switch (type) {
    case COMPOSED_FUNC: return ((JMethodID *)fnPtr)->nonVirtualInvoke(vm, clazz, inst, list);
    default: return nvInvoke<jvalue>(vm, clazz, inst, list);
   }
  }
 
- jvalue JMethodID::nonVirtualInvoke(const JavaVM * vm, JClass * clazz, void * inst, const jvalue * args) const {
+ jvalue JMethodID::nonVirtualInvoke(const JavaVM * vm, JClass * clazz, JObject * inst, const jvalue * args) const {
   switch (type) {
    case COMPOSED_FUNC: return ((JMethodID *)fnPtr)->nonVirtualInvoke(vm, clazz, inst, args);
    default: return nvInvoke<jvalue>(vm, clazz, inst, args);
   }
  }
+
+ jvalue JMethodID::virtualInvoke(const JniEnv& env, jobject clazzOrObjRef, CX::va_list_t& list) const {
+  return virtualInvoke(&env.vm, env.resolveReference(clazzOrObjRef).get(), list);
+ }
+
+ jvalue JMethodID::virtualInvoke(const JniEnv& env, jobject clazzOrObjRef, const jvalue * args) const {
+  return virtualInvoke(&env.vm, env.resolveReference(clazzOrObjRef).get(), args);
+ }
+
+ jvalue JMethodID::nonVirtualInvoke(const JniEnv& env, jclass clazz, jobject inst, CX::va_list_t& list) const {
+  return nonVirtualInvoke(&env.vm, (JClass *) env.resolveReference((jobject) clazz).get(), env.resolveReference(inst).get(), list);
+ }
+
+ jvalue JMethodID::nonVirtualInvoke(const JniEnv& env, jclass clazz, jobject inst, const jvalue * args) const {
+  return nonVirtualInvoke(&env.vm, (JClass *) env.resolveReference((jobject) clazz).get(), env.resolveReference(inst).get(), args);
+ }
+
 }

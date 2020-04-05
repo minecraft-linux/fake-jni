@@ -68,7 +68,7 @@ namespace FakeJni {
   it->deleteReference(desc.index);
  }
 
- std::shared_ptr<JObject> JniEnv::resolveReference(jobject reference) {
+ std::shared_ptr<JObject> JniEnv::resolveReference(jobject reference) const {
   auto desc = JniReferenceDescription(reference).desc;
   if (desc.isGlobal)
    return vm.getGlobalReferenceTable().getReference(desc.index);

@@ -3,7 +3,9 @@
 #include <stdexcept>
 
 namespace FakeJni {
- jboolean NativeInterface::isSameObject(jobject obj1, jobject obj2) const {
+ jboolean NativeInterface::isSameObject(jobject ref1, jobject ref2) const {
+  auto obj1 = env.resolveReference(ref1);
+  auto obj2 = env.resolveReference(ref2);
   return (jboolean)(obj1 == obj2);
  }
 
