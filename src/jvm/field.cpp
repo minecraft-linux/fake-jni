@@ -185,4 +185,12 @@ namespace FakeJni {
    }
   }
  }
+
+ jvalue JFieldID::get(const FakeJni::JniEnv& env, jobject obj) const {
+  return get(&env.vm, env.resolveReference(obj).get());
+ }
+
+ void JFieldID::set(const FakeJni::JniEnv& env, jobject obj, void* value) const {
+  set(&env.vm, env.resolveReference(obj).get(), value);
+ }
 }

@@ -937,6 +937,9 @@ namespace FakeJni {
   [[nodiscard]]
   virtual jvalue get(const JavaVM * vm, JObject * obj) const;
   virtual void set(const JavaVM * vm, JObject * obj, void * value) const;
+
+  jvalue get(const JniEnv &env, jobject obj) const;
+  void set(const JniEnv &env, jobject obj, void * value) const;
  };
 
  //fake-jni implementation
