@@ -1200,6 +1200,8 @@ namespace FakeJni {
   virtual JObject * newInstance(const JavaVM * vm, const char * signature, const jvalue * values) const;
  };
 
+ class JThrowable;
+
  //FAKE-JNI USER API
  //TODO all JVM calls should be blocking until execution completes to prevent race conditions from emerging
  class Jvm : public JavaVM {
@@ -1207,7 +1209,7 @@ namespace FakeJni {
   const char * const uuid;
 
  private:
-  jthrowable exception = nullptr;
+  std::shared_ptr<JThrowable> exception;
   FILE * const log;
   InvokeInterface * invoke;
   JvmtiInterface * jvmti;
@@ -1300,8 +1302,8 @@ namespace FakeJni {
   virtual void start();
   virtual void start(const JObject * args);
   virtual JInt destroy();
-  virtual void throwException(jthrowable throwable);
-  virtual jthrowable getException() const;
+  virtual void throwException(std::shared_ptr<JThrowable> throwable);
+  virtual std::shared_ptr<JThrowable> getException() const;
   virtual void clearException();
   //Does not return
   virtual void fatalError(const char * message) const;

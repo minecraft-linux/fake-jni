@@ -437,17 +437,17 @@ case _signal: {\
   return JNI_OK;
  }
 
- void Jvm::throwException(jthrowable throwable) {
+ void Jvm::throwException(std::shared_ptr<JThrowable> throwable) {
   clearException();
-  exception = throwable;
+  exception = std::move(throwable);
  }
 
- jthrowable Jvm::getException() const {
+ std::shared_ptr<JThrowable> Jvm::getException() const {
   return exception;
  }
 
  void Jvm::clearException() {
-  exception = nullptr;
+  exception.reset();
  }
 
  void Jvm::fatalError(const char * message) const {

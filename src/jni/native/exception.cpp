@@ -5,13 +5,13 @@
 
 namespace FakeJni {
  jint NativeInterface::throw_(jthrowable jthrow) const {
-  JThrowable * throwable = *jthrow;
-  jthrowable current = exceptionOccurred();
+  const auto throwable = std::dynamic_pointer_cast<JThrowable>(env.resolveReference(jthrow));
+  auto current = vm.getException();
   if (current) {
-   throwable->addSuppressed(*current);
+   throwable->addSuppressed(std::move(current));
    vm.clearException();
   }
-  vm.throwException(*throwable);
+  vm.throwException(throwable);
   return JNI_OK;
  }
 
@@ -37,26 +37,28 @@ namespace FakeJni {
    );
   }
   //clean up string eventually
-  auto jstrMessage = new JString(message);
-  vm.throwException(constructor->invoke(env, clazz.get(), jstrMessage));
+  auto jstrMessage = std::make_shared<JString>(message);
+  auto jstrMessageRef = env.createLocalReference(jstrMessage); // TODO: Probably use magic reference here once they exist
+  auto exception = constructor->invoke(env, clazz.get(), jstrMessageRef);
+  env.deleteLocalReference(jstrMessageRef);
+  vm.throwException(std::dynamic_pointer_cast<JThrowable>(env.resolveReference(exception)));
+  env.deleteLocalReference(exception);
   return 0;
  }
 
  jthrowable NativeInterface::exceptionOccurred() const {
-  return vm.getException();
+  return (jthrowable) env.createLocalReference(vm.getException());
  }
 
  void NativeInterface::exceptionDescribe() const {
   auto exception = vm.getException();
   if (exception) {
-   ((JThrowable *)*exception)->printStackTrace();
+   exception->printStackTrace();
   }
  }
 
  void NativeInterface::exceptionClear() const {
-  JThrowable * exception = *vm.getException();
   vm.clearException();
-  delete exception;
  }
 
  jboolean NativeInterface::exceptionCheck() const {

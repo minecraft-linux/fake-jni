@@ -9,7 +9,7 @@
 namespace FakeJni {
  class JThrowable : public JObject {
  private:
-  std::set<JThrowable *> suppressedExceptions;
+  std::set<std::shared_ptr<JThrowable>> suppressedExceptions;
 
   std::shared_ptr<JString> message;
   std::shared_ptr<JThrowable> cause;
@@ -25,10 +25,7 @@ namespace FakeJni {
 
   virtual ~JThrowable();
 
-  template<typename T>
-  operator T() const;
-
-  void addSuppressed(JThrowable * exception);
+  void addSuppressed(std::shared_ptr<JThrowable> exception);
   const JThrowable * fillInStackTrace() const;
   std::shared_ptr<JThrowable> getCause() const;
   std::shared_ptr<JString> getMessage() const;

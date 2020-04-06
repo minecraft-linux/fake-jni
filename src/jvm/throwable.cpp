@@ -23,13 +23,10 @@ JThrowable::JThrowable(std::shared_ptr<JThrowable> cause) :
 {}
 
 JThrowable::~JThrowable() {
- //if (!suppressed) {
- // delete suppressed;
- //}
 }
 
-void JThrowable::addSuppressed(JThrowable * exception) {
-// suppressedExceptions.insert(exception);
+void JThrowable::addSuppressed(std::shared_ptr<JThrowable> exception) {
+ suppressedExceptions.insert(std::move(exception));
 }
 
 const JThrowable * JThrowable::fillInStackTrace() const {
