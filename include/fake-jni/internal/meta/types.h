@@ -36,23 +36,9 @@ public:\
  constexpr _##jni_ptr_type(const _##jni_ptr_type&&) = delete;\
  constexpr _##jni_ptr_type() = delete;\
  \
- template<typename T>\
- operator T() const;\
 };
 
 #define _DEFINE_JNI_CONVERSION_OPERATOR(fake_type, jni_ptr_type)\
-template<typename T>\
-_##jni_ptr_type::operator T() const {\
- using namespace FakeJni;\
- using component_t = typename CX::ComponentTypeResolver<T>::type;\
- constexpr const auto upcast = __is_base_of(component_t, _##jni_ptr_type);\
- static_assert(\
-  CX::MatchAny<component_t, fake_type>::value || upcast,\
-  #jni_ptr_type " can only be converted to " #fake_type "!"\
- );\
- return CX::union_cast<T>(const_cast<jni_ptr_type>(this));\
- \
-}
 
 //fake-jni API macros
 #define DEFINE_JNI_TYPE(target, sig)\
@@ -103,9 +89,6 @@ public:
  constexpr _jobject() = delete;
  constexpr _jobject(const _jobject&) = delete;
  constexpr _jobject(const _jobject&&) = delete;
-
- template<typename T>
- operator T() const;
 };
 
 _DECLARE_JNI_CONVERSION_OPERATOR(jclass)

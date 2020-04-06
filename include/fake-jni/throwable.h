@@ -50,22 +50,3 @@ DEFINE_JNI_TYPE(_jthrowable, "java/lang/Throwable")
 DECLARE_NATIVE_TYPE(FakeJni::JThrowable)
 
 DECLARE_NATIVE_ARRAY_DESCRIPTOR(FakeJni::JThrowable *)
-
-template<typename T>
-FakeJni::JThrowable::operator T() const {
- using component_t = typename CX::ComponentTypeResolver<T>::type;
- constexpr const auto
-  upcast = __is_base_of(component_t, JThrowable),
-  downcast = __is_base_of(JThrowable, component_t),
-  jnicast = CX::MatchAny<component_t, _jobject, _jthrowable>::value;
- static_assert(
-  upcast || downcast || jnicast,
-  "JThrowable can only be upcasted, downcasted or converted to jobject or jthrowable!"
- );
- auto ptr = const_cast<JThrowable *>(this);
- if constexpr(upcast || downcast) {
-  return (T&)*ptr;
- } else {
-  return CX::union_cast<T>(ptr);
- }
-}

@@ -1938,30 +1938,6 @@ namespace FakeJni {
   doubleDescriptor;
 }
 
-//_jobject template members
-template<typename T>
-_jobject::operator T() const {
- using component_t = typename CX::ComponentTypeResolver<T>::type;
- constexpr const auto downcast = __is_base_of(_jobject, component_t);
- static_assert(
-  CX::MatchAny<component_t, FakeJni::JObject>::value || downcast,
-  "jobject can only be converted to JObject and downcasted to derived JNI classes!"
- );
- return CX::union_cast<T>(const_cast<jobject>(this));
-}
-
-//_jclass template members
-template<typename T>
-_jclass::operator T() const {
- using component_t = typename CX::ComponentTypeResolver<T>::type;
- constexpr const auto upcast = __is_base_of(component_t, _jclass);
- static_assert(
-  CX::MatchAny<component_t, FakeJni::JClass>::value || upcast,
-  "jclass can only be converted to JClass upcast to jobject!"
- );
- return CX::union_cast<T>(const_cast<jclass>(this));
-}
-
 //Clean up internal macros
 #undef _ASSERT_FIELD_JNI_COMPLIANCE
 #undef _JFIELDID_GET
