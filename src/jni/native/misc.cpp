@@ -13,9 +13,9 @@ namespace FakeJni {
   return JNI_VERSION_1_8;
  }
 
- jint NativeInterface::registerNatives(jclass jclass, const JNINativeMethod * methods, const jint numMethods) const {
+ jint NativeInterface::registerNatives(jclass jclazz, const JNINativeMethod * methods, const jint numMethods) const {
   bool success = true;
-  const JClass * clazz = *jclass;
+  const auto clazz = std::dynamic_pointer_cast<JClass>(env.resolveReference(jclazz));
   for (int i = 0; i < numMethods; i++) {
    const auto method = &methods[i];
 #ifdef FAKE_JNI_DEBUG
@@ -32,9 +32,9 @@ namespace FakeJni {
   return success ? JNI_OK : -1;
  }
 
- jint NativeInterface::unregisterNatives(jclass const jclass) const {
+ jint NativeInterface::unregisterNatives(jclass const jclazz) const {
   bool success = true;
-  JClass * const clazz = *jclass;
+  const auto clazz = std::dynamic_pointer_cast<JClass>(env.resolveReference(jclazz));
   std::vector<const JMethodID *> toRemove;
   for (auto& mid : clazz->getMethods()) {
    if (mid->type == JMethodID::REGISTER_NATIVES_FUNC) {
