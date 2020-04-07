@@ -360,6 +360,7 @@ namespace FakeJni {
     ((JMethodID *)fnPtr)->findVirtualMatch(clazz);
    }
    default: {
+    const auto origClazz = clazz;
     const auto * jobjDescriptor = &*JObject::getDescriptor();
     const auto
      name = getName(),
@@ -379,8 +380,8 @@ namespace FakeJni {
      + std::string(name)
      + signature
      + "' since no classes in the inheritance hierarchy of '"
-     + clazz->getName()
-     + "'register a matching overload!"
+     + origClazz->getName()
+     + "' register a matching overload!"
     );
    }
   }
