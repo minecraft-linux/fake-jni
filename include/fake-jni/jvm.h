@@ -1387,7 +1387,7 @@ namespace FakeJni {
   };
 
   template<typename T>
-  class BaseDefined<T, CX::void_t<decltype(&T::base)>> : public CX::true_type {
+  class BaseDefined<T, CX::void_t<decltype(&T::getBase)>> : public CX::true_type {
   private:
    struct BaseTypeAssertion {
     constexpr BaseTypeAssertion() noexcept {
@@ -1398,7 +1398,7 @@ namespace FakeJni {
     }
    };
 
-   //Will be constructed if T::base is defined
+   //Will be constructed if T::getBase is defined
    //Static assertion will fail if base is not a compliant type
    static constexpr const BaseTypeAssertion assert{};
   };
