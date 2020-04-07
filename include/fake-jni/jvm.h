@@ -717,7 +717,7 @@ namespace FakeJni {
   static JniEnv * getCurrentEnv() noexcept;
 
  private:
-  NativeInterface * native;
+  std::unique_ptr<NativeInterface> native;
   std::vector<JniReferenceTable> localFrames;
 
  public:
@@ -1618,6 +1618,7 @@ namespace FakeJni {
  template<typename R, typename A>
  R JMethodID::vInvoke(const JniEnv &env, void * clazzOrInst, A& args) const {
   auto * clazz = &((JObject *)clazzOrInst)->getClass();
+  printf("vInvoke %s %s\n", name, signature);
   if (strcmp(clazz->getName(), "java/lang/Class") == 0) {
    //Static method, no virtual dispatch
    if (type == MEMBER_FUNC) {

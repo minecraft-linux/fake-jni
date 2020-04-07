@@ -26,8 +26,7 @@ namespace FakeJni {
  }
 
  inline void JniEnv::setNativeInterface(NativeInterface * const ni) {
-  delete native;
-  native = ni;
+  native = std::unique_ptr<NativeInterface>(ni);
   functions = ni;
  }
 
