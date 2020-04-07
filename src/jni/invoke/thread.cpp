@@ -12,6 +12,7 @@ namespace FakeJni {
   if (env == nullptr) {
    javaOwnedEnv = vm->createJniEnv();
    env = javaOwnedEnv.get();
+   env->pushLocalFrame();
   }
   *penv = (void *)((JNIEnv *)env);
   return 0;
