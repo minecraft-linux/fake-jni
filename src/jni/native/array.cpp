@@ -10,7 +10,7 @@ auto arr = new array_type(size);\
 return (ret_type) env.createLocalReference(std::shared_ptr<JObject>(arr));
 
 #define _GET_ARRAY_ELEMENTS(array_type)\
-auto arr = CX::union_cast<array_type *>(jarr);\
+auto arr = std::dynamic_pointer_cast<array_type>(env.resolveReference(jarr)); \
 if (copy) {\
  if (*copy) {\
   const auto len = arr->getSize();\
@@ -25,7 +25,7 @@ return arr->getArray();
 
 //TODO ensure that a matching getArrayElements invocation occurred before freeing
 #define _FREE_ARRAY_ELEMENTS(array_type)\
-auto arr = CX::union_cast<array_type *>(jarr);\
+auto arr = std::dynamic_pointer_cast<array_type>(env.resolveReference(jarr)); \
 const auto len = arr->getSize();\
 if (mode == 0) {\
  for (JInt i = 0; i < len; i++) {\
@@ -44,7 +44,7 @@ if (mode == 0) {\
 
 //TODO JNI exception compliance
 #define _GET_ARRAY_REGION(array_type)\
-auto arr = CX::union_cast<array_type *>(jarr);\
+auto arr = std::dynamic_pointer_cast<array_type>(env.resolveReference(jarr)); \
 const auto size = arr->getSize();\
 if (0 > len || start + len > size) {\
  throw std::runtime_error("FATAL: Invalid array region requested!");\
@@ -54,7 +54,7 @@ for (JInt i = start; i < start + len; i++) {\
 }
 
 #define _SET_ARRAY_REGION(array_type)\
-auto arr = CX::union_cast<array_type *>(jarr);\
+auto arr = std::dynamic_pointer_cast<array_type>(env.resolveReference(jarr)); \
 const auto size = arr->getSize();\
 if (0 > len || start + len > size) {\
  throw std::runtime_error("FATAL: Invalid array region requested!");\
@@ -76,7 +76,8 @@ namespace FakeJni {
  }
 
  jsize NativeInterface::getArrayLength(jarray jarr) const {
-  return CX::union_cast<JArrayBase *>(jarr)->getSize();
+  auto arr = std::dynamic_pointer_cast<JArrayBase>(env.resolveReference(jarr));
+  return arr->getSize();
  }
 
  jobjectArray NativeInterface::newObjectArray(jsize size, jclass element_t, jobject initialElement) const {
