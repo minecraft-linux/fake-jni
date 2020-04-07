@@ -18,10 +18,10 @@ namespace FakeJni {
  jint NativeInterface::throwNew(jclass jclazz, const char * message) const {
   const auto clazz = std::dynamic_pointer_cast<JClass>(env.resolveReference(jclazz));
   const JClass *derived = clazz.get();
-  while (derived != JThrowable::getDescriptor() && derived != JObject::getDescriptor()) {
+  while (derived != &*JThrowable::getDescriptor() && derived != &*JObject::getDescriptor()) {
    derived = derived->parent.get();
   }
-  if (derived != JThrowable::getDescriptor()) {
+  if (derived != &*JThrowable::getDescriptor()) {
    throw std::runtime_error(
     "FATAL: Requested exception class '"
      + std::string(clazz->getName())

@@ -360,7 +360,7 @@ namespace FakeJni {
     ((JMethodID *)fnPtr)->findVirtualMatch(clazz);
    }
    default: {
-    const auto * jobjDescriptor = JObject::getDescriptor();
+    const auto * jobjDescriptor = &*JObject::getDescriptor();
     const auto
      name = getName(),
      signature = getSignature();

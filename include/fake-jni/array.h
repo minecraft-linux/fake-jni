@@ -42,12 +42,14 @@ namespace FakeJni {\
    static constexpr const bool hasComplexHierarchy = JniTypeBase<fake_object>::hasComplexHierarchy;\
   };\
  }\
+ template<>\
+ const std::shared_ptr<const FakeJni::JClass> &FakeJni::JArray<fake_object>::getDescriptor() noexcept;\
  class fake_object : public JArray<fake_object> {\
  public:\
   template<typename T>\
   operator T() const;\
   using JArray<fake_object>::JArray;\
-  inline static const JClass * getDescriptor() noexcept {\
+  inline static const std::shared_ptr<const FakeJni::JClass> &getDescriptor() noexcept {\
    return JArray<fake_object>::getDescriptor();\
   }\
  };\
@@ -69,9 +71,7 @@ namespace FakeJni {\
     return CX::union_cast<T>((JArrayBase *)this);\
    }\
  }\
-}\
-template<>\
-const std::shared_ptr<const FakeJni::JClass> FakeJni::JArray<FakeJni::fake_object>::descriptor;
+}
 
 #define _COMPONENT_T(obj) typename CX::ComponentTypeResolver<obj>::type
 
@@ -93,18 +93,21 @@ namespace FakeJni::_CX {\
   static constexpr const auto signature = CX::Concat<arrayPrefix, JniTypeBase<_COMPONENT_T(fake_object)>::signature>::result;\
   static constexpr const bool hasComplexHierarchy = CastDefined<JArray<_COMPONENT_T(fake_object)>>::value;\
  };\
-}\
+} \
 template<>\
-const std::shared_ptr<const FakeJni::JClass> FakeJni::JArray<_COMPONENT_T(fake_object)>::descriptor;
+const std::shared_ptr<const FakeJni::JClass> &FakeJni::JArray<_COMPONENT_T(fake_object)>::getDescriptor() noexcept;
 
 #define DEFINE_NATIVE_ARRAY_DESCRIPTOR(fake_object) \
 template<>\
-const std::shared_ptr<const FakeJni::JClass> FakeJni::JArray<_COMPONENT_T(fake_object)>::descriptor (new FakeJni::JClass {\
- FakeJni::JClass::PUBLIC,\
- FakeJni::_CX::JClassBreeder<FakeJni::JArray<_COMPONENT_T(fake_object)>> {\
-  {FakeJni::Field<&JArray<_COMPONENT_T(fake_object)>::length> {}, "length"}\
- }\
-});
+const std::shared_ptr<const FakeJni::JClass> &FakeJni::JArray<_COMPONENT_T(fake_object)>::getDescriptor() noexcept { \
+ static const std::shared_ptr<const FakeJni::JClass> descriptor (new FakeJni::JClass {\
+  FakeJni::JClass::PUBLIC,\
+  FakeJni::_CX::JClassBreeder<FakeJni::JArray<_COMPONENT_T(fake_object)>> {\
+   {FakeJni::Field<&JArray<_COMPONENT_T(fake_object)>::length> {}, "length"}\
+  }\
+ });\
+ return descriptor; \
+}
 
 namespace FakeJni {
  //Utility base, not a registered fake-jni type
@@ -198,12 +201,9 @@ namespace FakeJni {
 
   //fake-jni metadata
   static constexpr const auto name = _CX::JniTypeBase<JArray<base_t>>::signature;
-  static const std::shared_ptr<const JClass> descriptor;
-  inline static const JClass * getDescriptor() noexcept {
-   return descriptor.get();
-  }
+  static const std::shared_ptr<const JClass> & getDescriptor() noexcept;
   virtual const JClass & getClass() const noexcept override {
-   return *descriptor;
+   return *getDescriptor();
   }
 
   JArray<T>& operator=(const JArray<T> & arr) const;
@@ -220,12 +220,11 @@ namespace FakeJni {
   using JArray<T>::JArray;
 
   static constexpr const auto & name = base_t::name;
-  inline static const std::shared_ptr<const JClass> & descriptor = base_t::descriptor;
-  inline static const JClass * getDescriptor() noexcept {
-   return descriptor.get();
+  inline static const std::shared_ptr<const JClass> & getDescriptor() noexcept {
+   return base_t::getDescriptor();
   }
   virtual const JClass & getClass() const noexcept override {
-   return *descriptor;
+   return *getDescriptor();
   }
  };
 
@@ -238,12 +237,11 @@ namespace FakeJni {
   using JArray<T>::JArray;
 
   static constexpr const auto & name = base_t::name;
-  inline static const std::shared_ptr<const JClass> & descriptor = base_t::descriptor;
-  inline static const JClass * getDescriptor() noexcept {
-   return descriptor.get();
+  inline static const std::shared_ptr<const JClass> & getDescriptor() noexcept {
+   return base_t::getDescriptor();
   }
   virtual const JClass & getClass() const noexcept override {
-   return *descriptor;
+   return *getDescriptor();
   }
  };
 

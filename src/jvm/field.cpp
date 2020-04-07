@@ -107,7 +107,7 @@ namespace FakeJni {
   switch(type) {
    case COMPOSED_PROP: return composed->findVirtualMatch(clazz);
    default: {
-    const auto * jobjDescriptor = JObject::getDescriptor();
+    const auto * jobjDescriptor = &*JObject::getDescriptor();
     const JFieldID * fieldDescriptor = clazz->getField(signature, name);
     if (!fieldDescriptor) {
      clazz = clazz->parent.get();
@@ -141,7 +141,7 @@ namespace FakeJni {
    default: {
     auto clazz = &obj->getClass();
     const JFieldID * fid = this;
-    if (clazz != JClass::getDescriptor()) {
+    if (clazz != &*JClass::getDescriptor()) {
      fid = findVirtualMatch(clazz);
     }
     if (fid) {

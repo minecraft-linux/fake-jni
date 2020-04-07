@@ -110,7 +110,7 @@ namespace FakeJni {
   class BaseDefined : public CX::false_type {};
 
   template<typename T>
-  class BaseDefined<T, CX::void_a<T::base>>;
+  class BaseDefined<T, CX::void_a<&T::getBase>>;
 
   template<unsigned N>
   struct arbitrary_align_t {

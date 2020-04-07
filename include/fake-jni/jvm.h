@@ -93,17 +93,14 @@ for (unsigned int i = 0; i < argc; i++) {\
 
 #define _DEFINE_CLASS_NAME_1(str) \
 static constexpr const char name[] = str;\
-static const std::shared_ptr<const FakeJni::JClass> descriptor;\
-inline static const FakeJni::JClass * getDescriptor() noexcept {\
- return descriptor.get();\
-}\
+static const std::shared_ptr<const FakeJni::JClass> &getDescriptor() noexcept; \
 virtual const FakeJni::JClass & getClass() const noexcept override {\
- return *descriptor;\
+ return *getDescriptor();\
 }
 
 #define _DEFINE_CLASS_NAME_2(str, baseClass) \
 _DEFINE_CLASS_NAME_1(str)\
-static constexpr const auto& base = baseClass::descriptor;
+static inline const auto& getBase() { return baseClass::getDescriptor(); }
 
 #define DEFINE_CLASS_NAME(...) \
 DUAL_OVERLOAD_RESOLVER(__VA_ARGS__, _DEFINE_CLASS_NAME_2, _DEFINE_CLASS_NAME_1, ...) (__VA_ARGS__)
@@ -125,7 +122,8 @@ namespace FakeJni::_CX {\
 }
 
 #define _DEFINE_NATIVE_DESCRIPTOR_2(clazz, modifiers) \
-inline const std::shared_ptr<const FakeJni::JClass> clazz::descriptor (new FakeJni::JClass { modifiers, FakeJni::_CX::JClassBreeder<clazz> {
+const std::shared_ptr<const FakeJni::JClass> &clazz::getDescriptor() noexcept { \
+ static const std::shared_ptr<const FakeJni::JClass> descriptor (new FakeJni::JClass { modifiers, FakeJni::_CX::JClassBreeder<clazz> {
 
 #define _DEFINE_NATIVE_DESCRIPTOR_1(clazz) \
 _DEFINE_NATIVE_DESCRIPTOR_2(clazz, FakeJni::JClass::PUBLIC)
@@ -143,6 +141,11 @@ _BEGIN_NATIVE_DESCRIPTOR_2(clazz, FakeJni::JClass::PUBLIC)
 #define BEGIN_NATIVE_DESCRIPTOR(...) \
 DUAL_OVERLOAD_RESOLVER(__VA_ARGS__, _BEGIN_NATIVE_DESCRIPTOR_2, _BEGIN_NATIVE_DESCRIPTOR_1, _) (__VA_ARGS__)
 
+#define END_NATIVE_DESCRIPTOR \
+ }}); \
+ return descriptor; \
+}
+
 #define _BEGIN_NATIVE_PRIMITIVE_DESCRIPTOR_3(primitive, descriptorName, modifiers) \
 const std::shared_ptr<const FakeJni::JClass> descriptorName (new FakeJni::JClass { modifiers, FakeJni::_CX::JClassBreeder<primitive> {
 
@@ -152,7 +155,7 @@ _BEGIN_NATIVE_PRIMITIVE_DESCRIPTOR_3(primitive, descriptorName, FakeJni::JClass:
 #define BEGIN_NATIVE_PRIMITIVE_DESCRIPTOR(...) \
 TRI_OVERLOAD_RESOLVER(__VA_ARGS__, _BEGIN_NATIVE_PRIMITIVE_DESCRIPTOR_3, _BEGIN_NATIVE_PRIMITIVE_DESCRIPTOR_2, _) (__VA_ARGS__)
 
-#define END_NATIVE_DESCRIPTOR }});
+#define END_NATIVE_PRIMITIVE_DESCRIPTOR }});
 
 #define _DECLARE_NATIVE_PRIMITIVE_DESCRIPTOR_3(primitive, signature, descriptorName) \
 DEFINE_JNI_TYPE(primitive, signature)\
@@ -821,11 +824,8 @@ namespace FakeJni {
   //Internal fake-jni native class metadata
   //DEFINE_CLASS_NAME cant be used since this is the virtual base
   static constexpr const char name[] = "java/lang/Object";
-  static const std::shared_ptr<const JClass> descriptor;
 
-  inline static const JClass * getDescriptor() noexcept {
-   return descriptor.get();
-  }
+  static const std::shared_ptr<const FakeJni::JClass> &getDescriptor() noexcept;
 
   JObject() = default;
   virtual ~JObject() = default;
@@ -1103,11 +1103,14 @@ namespace FakeJni {
    using constructor_func_t = JObject * (*)(const JavaVM * vm, const char * signature, A args);
 
    const std::initializer_list<ClassDescriptorElement> descriptorElements;
-   const std::shared_ptr<const JClass> &parent = []() constexpr noexcept -> const std::shared_ptr<const JClass> & {
+   const std::shared_ptr<const JClass> parent = []() noexcept -> std::shared_ptr<const JClass> {
     if constexpr(_CX::BaseDefined<T>::value) {
-     return T::base;
+     return T::getBase();
     }
-    return JObject::descriptor;
+    if constexpr(CX::IsSame<T, JObject>::value) {
+     return std::shared_ptr<const JClass>();
+    }
+    return JObject::getDescriptor();
    }();
 
    constexpr JClassBreeder(decltype(descriptorElements) descriptorElements) noexcept;
@@ -1384,13 +1387,13 @@ namespace FakeJni {
   };
 
   template<typename T>
-  class BaseDefined<T, CX::void_t<decltype(T::base)>> : public CX::true_type {
+  class BaseDefined<T, CX::void_t<decltype(&T::base)>> : public CX::true_type {
   private:
    struct BaseTypeAssertion {
     constexpr BaseTypeAssertion() noexcept {
      static_assert(
-      CX::IsSame<JClass, typename CX::ComponentTypeResolver<decltype(T::base)>::type>::value,
-      "The member field 'base' is reserved for internal fake-jni usage!"
+      CX::IsSame<decltype(&T::getBase), std::shared_ptr<JClass const> const& (*)()>::value,
+      "The function 'getBase' is reserved for internal fake-jni usage!"
      );
     }
    };
@@ -1497,7 +1500,7 @@ namespace FakeJni {
  T* JFieldID::get(JObject * const obj) const {
   auto clazz = &obj->getClass();
   const JFieldID * fid = this;
-  if (clazz != JClass::getDescriptor()) {
+  if (clazz != &*JClass::getDescriptor()) {
    fid = findVirtualMatch(clazz);
   }
   if (fid) {
@@ -1765,7 +1768,7 @@ namespace FakeJni {
    __is_base_of(JObject, T),
    "Only native classes may be passed to registerClass!"
   );
-  return registerClass(T::descriptor);
+  return registerClass(T::getDescriptor());
  }
 
  template<typename T>
@@ -1774,7 +1777,7 @@ namespace FakeJni {
    __is_base_of(JObject, T),
    "Only native classes may be passed to unregisterClass!"
   );
-  return unregisterClass(T::descriptor.get());
+  return unregisterClass(T::getDescriptor().get());
  }
 
  template<typename T>

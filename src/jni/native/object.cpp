@@ -54,7 +54,7 @@ namespace FakeJni {
  }
 
  jboolean NativeInterface::isAssignableFrom(jclass jderivedRef, jclass jbaseRef) const {
-  const auto jobjDescriptor = JObject::getDescriptor();
+  const auto jobjDescriptor = &*JObject::getDescriptor();
   auto jderived = std::dynamic_pointer_cast<JClass>(env.resolveReference(jderivedRef));
   auto base = std::dynamic_pointer_cast<JClass>(env.resolveReference(jbaseRef));
   const JClass *derived = jderived.get();
