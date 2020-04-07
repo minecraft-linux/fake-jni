@@ -4,6 +4,7 @@
 #include <cx/classes.h>
 
 #include <cstring>
+#include <memory>
 
 namespace FakeJni {
  //fake-jni type metadata templates
@@ -54,6 +55,10 @@ namespace FakeJni {
   //Strip const qualifications off of JniTypeBase specializations and instantiations
   template<typename T>
   class JniTypeBase<const T> : public JniTypeBase<typename ComponentTypeResolver<const T>::type> {};
+
+  //Strip shared_ptr off of JniTypeBase specializations and instantiations
+  template<typename T>
+  class JniTypeBase<std::shared_ptr<T>> : public JniTypeBase<typename ComponentTypeResolver<T>::type> {};
 
   //'cast' alias detection idiom
   //Negative case
