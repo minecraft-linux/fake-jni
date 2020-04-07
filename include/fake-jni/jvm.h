@@ -96,6 +96,9 @@ static constexpr const char name[] = str;\
 static const std::shared_ptr<const FakeJni::JClass> &getDescriptor() noexcept; \
 virtual const FakeJni::JClass & getClass() const noexcept override {\
  return *getDescriptor();\
+}\
+virtual std::shared_ptr<const FakeJni::JClass> getClassRef() const noexcept override {\
+ return getDescriptor();\
 }
 
 #define _DEFINE_CLASS_NAME_2(str, baseClass) \

@@ -205,6 +205,9 @@ namespace FakeJni {
   virtual const JClass & getClass() const noexcept override {
    return *getDescriptor();
   }
+  virtual std::shared_ptr<const JClass> getClassRef() const noexcept override {
+   return getDescriptor();
+  }
 
   JArray<T>& operator=(const JArray<T> & arr) const;
   const component& operator[](JInt i) const;
@@ -226,6 +229,9 @@ namespace FakeJni {
   virtual const JClass & getClass() const noexcept override {
    return *getDescriptor();
   }
+  virtual std::shared_ptr<const JClass> getClassRef() const noexcept override {
+   return getDescriptor();
+  }
  };
 
  template<typename T>
@@ -242,6 +248,9 @@ namespace FakeJni {
   }
   virtual const JClass & getClass() const noexcept override {
    return *getDescriptor();
+  }
+  virtual std::shared_ptr<const JClass> getClassRef() const noexcept override {
+   return getDescriptor();
   }
  };
 
