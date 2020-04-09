@@ -156,33 +156,33 @@ namespace FakeJni {
   //Entry invoker for member functions
   template<auto N, typename T, typename R, typename... Args>
   struct FunctionAccessor<N, R (T::* const)(Args...)> {
-   using arg_t = typename CX::TemplateTypeIterator<N - 1, Args...>::type;
+   using arg_t = typename CX::TemplateTypeIterator<sizeof...(Args) - N, Args...>::type;
    using func_t = R (T::* const)(Args...);
    using erased_t = void (AnyClass::* const)();
 
    template<typename... DecomposedVarargs>
    [[gnu::always_inline]]
    inline static jvalue_option invokeV(JniEnv const &env, void * const inst, erased_t func, CX::va_list_t& list, DecomposedVarargs... args) {
-    return FunctionAccessor<N - 1, func_t>::template invokeV<arg_t, DecomposedVarargs...>(
+    return FunctionAccessor<N - 1, func_t>::template invokeV<DecomposedVarargs..., arg_t>(
      env,
      inst,
      func,
      list,
-     ArgumentTranslator<arg_t>::convert_va_arg(env, list),
-     args...
+     args...,
+     ArgumentTranslator<arg_t>::convert_va_arg(env, list)
     );
    }
 
    template<typename... DecomposedJValues>
    [[gnu::always_inline]]
    inline static jvalue_option invokeA(JniEnv const &env, void * const inst, erased_t func, jvalue * const values, DecomposedJValues... args) {
-    return FunctionAccessor<N - 1, func_t>::template invokeA<arg_t, DecomposedJValues...>(
+    return FunctionAccessor<N - 1, func_t>::template invokeA<DecomposedJValues..., arg_t>(
      env,
      inst,
      func,
      values + 1,
-     ArgumentTranslator<arg_t>::convert_aarg(env, values),
-     args...
+     args...,
+     ArgumentTranslator<arg_t>::convert_aarg(env, values)
     );
    }
   };
@@ -219,31 +219,31 @@ namespace FakeJni {
   //Entry invoker for non-member functions
   template<auto N, typename R, typename... Args>
   struct FunctionAccessor<N, R (* const)(Args...)> {
-   using arg_t = typename CX::TemplateTypeIterator<N - 1, Args...>::type;
+   using arg_t = typename CX::TemplateTypeIterator<sizeof...(Args) - N, Args...>::type;
    using func_t = R (* const)(Args...);
    using erased_t = void (* const)();
 
    template<typename... DecomposedVarargs>
    [[gnu::always_inline]]
    inline static jvalue_option invokeV(JniEnv const &env, erased_t func, CX::va_list_t& list, DecomposedVarargs... args) {
-    return FunctionAccessor<N - 1, func_t>::template invokeV<arg_t, DecomposedVarargs...>(
+    return FunctionAccessor<N - 1, func_t>::template invokeV<DecomposedVarargs..., arg_t>(
      env,
      func,
      list,
-     ArgumentTranslator<arg_t>::convert_va_arg(env, list),
-     args...
+     args...,
+     ArgumentTranslator<arg_t>::convert_va_arg(env, list)
     );
    }
 
    template<typename... DecomposedJValues>
    [[gnu::always_inline]]
    inline static jvalue_option invokeA(JniEnv const &env, erased_t func, jvalue * const values, DecomposedJValues... args) {
-    return FunctionAccessor<N - 1, func_t>::template invokeA<arg_t, DecomposedJValues...>(
+    return FunctionAccessor<N - 1, func_t>::template invokeA<DecomposedJValues..., arg_t>(
      env,
      func,
      values + 1,
-     ArgumentTranslator<arg_t>::convert_aarg(env, values),
-     args...
+     args...,
+     ArgumentTranslator<arg_t>::convert_aarg(env, values)
     );
    }
   };
@@ -281,19 +281,19 @@ namespace FakeJni {
   //Entry invoker for stl functors
   template<auto N, typename R, typename... Args>
   struct FunctionAccessor<N, CX::Lambda<R (Args...)>> {
-   using arg_t = typename CX::TemplateTypeIterator<N - 1, Args...>::type;
+   using arg_t = typename CX::TemplateTypeIterator<sizeof...(Args) - N, Args...>::type;
    using func_t = CX::Lambda<R (Args...)>;
    using align_t = _CX::arbitrary_align_t<sizeof(CX::Lambda<void ()>)>;
 
    template<typename... DecomposedVarargs>
    [[gnu::always_inline]]
    inline static jvalue_option invokeV(JniEnv const &env, align_t func, CX::va_list_t& list, DecomposedVarargs... args) {
-    return FunctionAccessor<N - 1, func_t>::template invokeV<arg_t, DecomposedVarargs...>(
+    return FunctionAccessor<N - 1, func_t>::template invokeV<DecomposedVarargs..., arg_t>(
      env,
      func,
      list,
-     ArgumentTranslator<arg_t>::convert_va_arg(env, list),
-     args...
+     args...,
+     ArgumentTranslator<arg_t>::convert_va_arg(env, list)
     );
    }
 
@@ -304,8 +304,8 @@ namespace FakeJni {
      env,
      func,
      values + 1,
-     ArgumentTranslator<arg_t>::convert_aarg(env, values),
-     args...
+     args...,
+     ArgumentTranslator<arg_t>::convert_aarg(env, values)
     );
    }
   };
