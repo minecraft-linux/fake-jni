@@ -7,6 +7,7 @@ const std::shared_ptr<const FakeJni::JClass> &FakeJni::JArray<array_type, true>:
  static const std::shared_ptr<const FakeJni::JClass> descriptor (new FakeJni::JClass {\
   FakeJni::JClass::PUBLIC,\
   FakeJni::_CX::JClassBreeder<FakeJni::JArray<array_type>> {\
+   {FakeJni::Constructor<JArray<array_type>, JInt> {}},\
    {FakeJni::Field<&JArray<array_type>::length> {}, "length"}\
   }\
  });\

@@ -26,7 +26,7 @@ namespace FakeJni {
   while (vm.findClass(dummyName.c_str())) {
    dummyName.push_back('_');
   }
-  return new JClass(dummyName.c_str(), JClass::PUBLIC);
+  return new JClass(dummyName.c_str(), dummyName.c_str(), JClass::PUBLIC);
  }
 
  void createMainMethod(const Jvm & vm, _CX::main_method_t * main, std::shared_ptr<const JClass> cclazz) {

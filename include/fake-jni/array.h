@@ -76,6 +76,7 @@ namespace FakeJni {
  struct JObjectArrayBase : JArrayBase {
   virtual std::shared_ptr<JObject> getObject(JInt index) = 0;
   virtual void setObject(JInt index, std::shared_ptr<JObject> obj) = 0;
+  virtual void fillWithObject(std::shared_ptr<JObject> obj) = 0;
  };
 
  template<typename T>
@@ -90,6 +91,12 @@ namespace FakeJni {
   }
   void setObject(JInt index, std::shared_ptr<JObject> obj) override {
    (*this)[index] = std::dynamic_pointer_cast<T>(obj);
+  }
+  void fillWithObject(std::shared_ptr<JObject> obj) override {
+   auto array = JArrayImpl<std::shared_ptr<T>, JObjectArrayBase>::getArray();
+   auto cobj = std::dynamic_pointer_cast<T>(obj);
+   for (auto it = JArrayImpl<std::shared_ptr<T>, JObjectArrayBase>::getSize() - 1; it >= 0; --it)
+    array[it] = cobj;
   }
 
   //fake-jni metadata
@@ -215,6 +222,7 @@ namespace FakeJni {
   static const std::shared_ptr<const FakeJni::JClass> descriptor (new FakeJni::JClass {
    FakeJni::JClass::PUBLIC,
    FakeJni::_CX::JClassBreeder<FakeJni::JArray<T>> {
+    {FakeJni::Constructor<JArray<T>, JInt> {}},
     {FakeJni::Field<&JArray<T>::length> {}, "length"}
    }
   });

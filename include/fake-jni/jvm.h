@@ -1148,6 +1148,7 @@ namespace FakeJni {
    (* const constructA)(const JavaVM *, const char *, const jvalue *);
 
   const char * const className;
+  const char * const signature;
 
  public:
   DEFINE_CLASS_NAME("java/lang/Class")
@@ -1181,7 +1182,7 @@ namespace FakeJni {
   explicit JClass(uint32_t modifiers, _CX::JClassBreeder<T, true> breeder) noexcept;
   template<typename T>
   explicit JClass(uint32_t modifiers, _CX::JClassBreeder<T, false> breeder) noexcept;
-  explicit JClass(const char * name, uint32_t modifiers = PUBLIC) noexcept;
+  explicit JClass(const char * name, const char * signature, uint32_t modifiers = PUBLIC) noexcept;
   JClass(const JClass & clazz) noexcept;
   virtual ~JClass();
 
@@ -1198,6 +1199,7 @@ namespace FakeJni {
   [[nodiscard]]
   virtual const PointerList<const JFieldID *>& getFields() const noexcept;
   virtual const char * getName() const noexcept;
+  virtual const char * getSignature() const noexcept;
   //Object construction for c-varargs
   [[nodiscard]]
   virtual std::shared_ptr<JObject> newInstance(const JavaVM * vm, const char * signature, CX::va_list_t& list) const;
@@ -1912,6 +1914,7 @@ namespace FakeJni {
   constructV(&decltype(breeder)::template constructorPredicate<CX::va_list_t&>),
   constructA(&decltype(breeder)::template constructorPredicate<const jvalue *>),
   className(T::name),
+  signature(_CX::JniTypeBase<T>::signature),
   isArbitrary(false),
   isPrimitive(false),
   modifiers(modifiers),
@@ -1930,6 +1933,7 @@ namespace FakeJni {
   constructV(&decltype(breeder)::template constructorPredicate<CX::va_list_t&>),
   constructA(&decltype(breeder)::template constructorPredicate<const jvalue *>),
   className(_CX::JniTypeBase<T>::signature),
+  signature(_CX::JniTypeBase<T>::signature),
   isArbitrary(false),
   isPrimitive(true),
   modifiers(modifiers),

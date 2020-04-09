@@ -6,7 +6,7 @@
 throw std::runtime_error("FATAL: Cannot construct an arbitrary class with no native backing!");
 
 namespace FakeJni {
- JClass::JClass(const char * name, uint32_t modifiers) noexcept :
+ JClass::JClass(const char * name, const char * signature, uint32_t modifiers) noexcept :
   JObject(),
   constructV([](const JavaVM * const, const char * const, CX::va_list_t&) -> std::shared_ptr<JObject> {
    _ERROR_ARBITRARY_CLASS
@@ -15,6 +15,7 @@ namespace FakeJni {
    _ERROR_ARBITRARY_CLASS
   }),
   className(_INTERNAL_ARBITRARY_ALLOC_STR(name)),
+  signature(_INTERNAL_ARBITRARY_ALLOC_STR(signature)),
   isArbitrary(true),
   isPrimitive(false),
   modifiers(modifiers),
@@ -28,6 +29,7 @@ namespace FakeJni {
   constructV(clazz.constructV),
   constructA(clazz.constructA),
   className((clazz.isArbitrary ? _INTERNAL_ARBITRARY_ALLOC_STR(clazz.className) : clazz.className)),
+  signature((clazz.isArbitrary ? _INTERNAL_ARBITRARY_ALLOC_STR(clazz.signature) : clazz.signature)),
   isArbitrary(clazz.isArbitrary),
   isPrimitive(clazz.isPrimitive),
   modifiers(clazz.modifiers),
@@ -168,6 +170,10 @@ namespace FakeJni {
 
  const char * JClass::getName() const noexcept {
   return className;
+ }
+
+ const char * JClass::getSignature() const noexcept {
+  return signature;
  }
 
  std::shared_ptr<JObject> JClass::newInstance(const JavaVM * const vm, const char * const signature, CX::va_list_t& list) const {

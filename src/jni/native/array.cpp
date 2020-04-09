@@ -80,12 +80,21 @@ namespace FakeJni {
   return arr->getSize();
  }
 
- jobjectArray NativeInterface::newObjectArray(jsize size, jclass elementTypeRef, jobject initialElement) const {
-//  auto arr = new JObjectArray(size);
-//  for (JInt i = 0; i < size; i++) {
-//   arr[i] = *CX::union_cast<JObject *>(initialElement);
-//  }
-//  return (jobjectArray) env.createLocalReference(std::shared_ptr<JObject>(arr));
+ jobjectArray NativeInterface::newObjectArray(jsize size, jclass elementTypeRef, jobject initialElementRef) const {
+  auto elementType = std::dynamic_pointer_cast<JClass>(env.resolveReference(elementTypeRef));
+  auto initialElement = env.resolveReference(initialElementRef);
+  auto arrayType = JArray<JObject>::getDescriptor();
+  if (elementType) {
+   auto tryArrayType = vm.findClass((std::string("[") + elementType->getSignature()).c_str());
+   if (tryArrayType)
+    arrayType = tryArrayType;
+  }
+  jvalue args[1];
+  args[0].i = size;
+  auto inst = std::dynamic_pointer_cast<JObjectArrayBase>(arrayType->newInstance(&vm, "(I)V", args));
+  if (initialElement)
+   inst->fillWithObject(initialElement);
+  return (jobjectArray) env.createLocalReference(inst);
  }
 
  jobject NativeInterface::getObjectArrayElement(jobjectArray arrRef, jsize index) const {
