@@ -22,7 +22,8 @@ namespace FakeJni {
  }
 
  void NativeInterface::deleteGlobalRef(jobject const jobj) const {
-  vm.deleteGlobalReference(jobj);
+  if (jobj)
+   vm.deleteGlobalReference(jobj);
  }
 
  jobject NativeInterface::newLocalRef(jobject const jobj) const {
@@ -33,7 +34,8 @@ namespace FakeJni {
  }
 
  void NativeInterface::deleteLocalRef(jobject const jobj) const {
-  env.deleteLocalReference(jobj);
+  if (jobj)
+   env.deleteLocalReference(jobj);
  }
 
  jweak NativeInterface::newWeakGlobalRef(jobject const jobj) const {
