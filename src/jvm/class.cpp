@@ -85,13 +85,15 @@ namespace FakeJni {
  }
 
  const JMethodID * JClass::getMethod(const char * sig, const char * name) const noexcept {
-  auto& functions_ref = const_cast<PointerList<const JMethodID *>&>(functions);
-  for (auto func : functions_ref) {
-   if (strcmp(name, func->getName()) == 0) {
-    if (strcmp(sig, func->getSignature()) == 0) {
+  const auto * jobjDescriptor = &*JObject::getDescriptor();
+  auto * clazz = this;
+  while (clazz != jobjDescriptor) {
+   auto& functions_ref = const_cast<PointerList<const JMethodID *>&>(clazz->functions);
+   for (auto func : functions_ref) {
+    if (strcmp(name, func->getName()) == 0 && strcmp(sig, func->getSignature()) == 0)
      return func;
-    }
    }
+   clazz = clazz->parent.get();
   }
   return nullptr;
  }
