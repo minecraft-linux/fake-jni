@@ -1940,6 +1940,7 @@ namespace FakeJni {
   voidDescriptor,
   booleanDescriptor,
   byteDescriptor,
+  charDescriptor,
   shortDescriptor,
   intDescriptor,
   floatDescriptor,
