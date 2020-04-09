@@ -481,8 +481,8 @@ namespace FakeJni {
   }
 
   [[gnu::always_inline]]
-  inline static T * construct(Args... args) {
-   return new T(args...);
+  inline static std::shared_ptr<T> construct(Args... args) {
+   return std::make_shared<T>(args...);
   }
  };
 }

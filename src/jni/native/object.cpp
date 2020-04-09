@@ -18,13 +18,13 @@ namespace FakeJni {
  jobject NativeInterface::newObjectV(jclass const clazzRef, jmethodID mid, CX::va_list_t& args) const {
   auto clazz = std::dynamic_pointer_cast<JClass>(env.resolveReference(clazzRef));
   auto inst = clazz->newInstance(&vm, ((JMethodID *)mid)->getSignature(), args);
-  return env.createLocalReference(std::shared_ptr<JObject>(inst));
+  return env.createLocalReference(inst);
  }
 
  jobject NativeInterface::newObjectA(jclass const clazzRef, jmethodID const mid, const jvalue * const args) const {
   auto clazz = std::dynamic_pointer_cast<JClass>(env.resolveReference(clazzRef));
   auto inst = clazz->newInstance(&vm, ((JMethodID *)mid)->getSignature(), args);
-  return env.createLocalReference(std::shared_ptr<JObject>(inst));
+  return env.createLocalReference(inst);
  }
 
  jclass NativeInterface::getObjectClass(jobject const objRef) const {

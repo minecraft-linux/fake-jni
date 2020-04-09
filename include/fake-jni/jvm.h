@@ -1125,7 +1125,7 @@ namespace FakeJni {
    using JClassBreeder<T, nullptr>::JClassBreeder;
 
    template<typename A>
-   static JObject * constructorPredicate(const JavaVM * vm, const char * signature, A args);
+   static std::shared_ptr<JObject> constructorPredicate(const JavaVM * vm, const char * signature, A args);
 
    static constexpr void assertCompliance() noexcept;
   };
@@ -1135,7 +1135,7 @@ namespace FakeJni {
    using JClassBreeder<T, nullptr>::JClassBreeder;
 
    template<typename A>
-   static JObject * constructorPredicate(const JavaVM * vm, const char * signature, A args);
+   static std::shared_ptr<JObject> constructorPredicate(const JavaVM * vm, const char * signature, A args);
 
    static constexpr void assertCompliance() noexcept;
   };
@@ -1143,9 +1143,9 @@ namespace FakeJni {
 
  class JClass : public JObject {
  private:
-  JObject
-   * (* const constructV)(const JavaVM *, const char *, CX::va_list_t&),
-   * (* const constructA)(const JavaVM *, const char *, const jvalue *);
+ std::shared_ptr<JObject>
+   (* const constructV)(const JavaVM *, const char *, CX::va_list_t&),
+   (* const constructA)(const JavaVM *, const char *, const jvalue *);
 
   const char * const className;
 
@@ -1200,10 +1200,10 @@ namespace FakeJni {
   virtual const char * getName() const noexcept;
   //Object construction for c-varargs
   [[nodiscard]]
-  virtual JObject * newInstance(const JavaVM * vm, const char * signature, CX::va_list_t& list) const;
+  virtual std::shared_ptr<JObject> newInstance(const JavaVM * vm, const char * signature, CX::va_list_t& list) const;
   //Object construction for jvalue arrays
   [[nodiscard]]
-  virtual JObject * newInstance(const JavaVM * vm, const char * signature, const jvalue * values) const;
+  virtual std::shared_ptr<JObject> newInstance(const JavaVM * vm, const char * signature, const jvalue * values) const;
  };
 
  class JThrowable;
@@ -1827,19 +1827,18 @@ namespace FakeJni {
   //Class members
   template<typename T>
   template<typename A>
-  JObject * JClassBreeder<T, true>::constructorPredicate(const JavaVM * const vm, const char * const signature, A args) {
+  std::shared_ptr<JObject> JClassBreeder<T, true>::constructorPredicate(const JavaVM * const vm, const char * const signature, A args) {
    JClass& descriptor = const_cast<JClass&>(*T::getDescriptor());
    for (auto& method : descriptor.functions) {
     if (strcmp(method->getSignature(), signature) == 0 && strcmp(method->getName(), "<init>") == 0) {
      LocalFrame frame (*(Jvm const *) vm);
-     const T * inst = method->nonVirtualInvoke(frame.getJniEnv(), &descriptor, &descriptor, args);
-     JObject * baseInst;
+     jobject jinst = method->nonVirtualInvoke(frame.getJniEnv(), &descriptor, &descriptor, args);
+     auto inst = frame.getJniEnv().resolveReference(jinst);
      if constexpr(_CX::JniTypeBase<T>::hasComplexHierarchy) {
-      baseInst = (JObject *)T::cast::cast(inst);
+      return std::dynamic_pointer_cast<JObject>(T::cast::cast(inst));
      } else {
-      baseInst = (JObject *)inst;
+      return inst;
      }
-     return baseInst;
     }
    }
    return nullptr;
@@ -1859,7 +1858,7 @@ namespace FakeJni {
   //Non-class members
   template<typename T>
   template<typename A>
-  JObject * JClassBreeder<T, false>::constructorPredicate(const JavaVM * vm, const char * signature, A args) {
+  std::shared_ptr<JObject> JClassBreeder<T, false>::constructorPredicate(const JavaVM * vm, const char * signature, A args) {
    throw std::runtime_error("FATAL: You cannot construct primitive types!");
    return nullptr;
   }
