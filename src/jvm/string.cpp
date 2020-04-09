@@ -48,10 +48,10 @@ namespace FakeJni {
   return (*this) == str.c_str();
  }
 
- JString& JString::operator=(const FakeJni::JString &str) const {
+ JString& JString::operator=(const FakeJni::JString &str) {
   auto& ref = const_cast<JString&>(*this);
   ref.length = str.length;
-  JArray<JCharArray>::operator=(str);
+  JCharArray::operator=(str);
   return ref;
  }
 

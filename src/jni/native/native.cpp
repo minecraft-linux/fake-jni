@@ -156,7 +156,7 @@ namespace FakeJni {
   };
   GetMethodID = [](JNIEnv *env, jclass clazz, const char *str1, const char *str2) -> jmethodID {
    _FETCH_JNI_ENV
-   _NATIVE_DEBUG(GetMethodID)
+    _NATIVE_DEBUG(GetMethodID)
    return ni->getMethodID(clazz, str1, str2);
   };
   CallObjectMethod = &NativeInterface::_CallObjectMethod;

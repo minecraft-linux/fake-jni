@@ -84,7 +84,7 @@ namespace FakeJni {
   registerClass<JClass>();
   registerClass<JString>();
   registerClass<JThrowable>();
-  registerClass<JArray<JThrowable *>>();
+  registerClass<JArray<JThrowable>>();
 //  registerClass<JWeak>();
   registerClass<JBooleanArray>();
   registerClass<JByteArray>();
@@ -94,7 +94,7 @@ namespace FakeJni {
   registerClass<JFloatArray>();
   registerClass<JLongArray>();
   registerClass<JDoubleArray>();
-  registerClass<JObjectArray>();
+  registerClass<JArray<JObject>>();
   registerClass(voidDescriptor);
   registerClass(booleanDescriptor);
   registerClass(byteDescriptor);
@@ -375,19 +375,19 @@ case _signal: {\
  }
 
  void Jvm::start() {
-  JArray<JString *> args{};
+  JArray<JString> args{};
   start(&args);
  }
 
  void Jvm::start(const JObject * oArgs) {
   if (oArgs) {
-   if (strcmp(oArgs->getClass().getName(), JArray<JString *>::getDescriptor()->getName())) {
+   if (strcmp(oArgs->getClass().getName(), JArray<JString>::getDescriptor()->getName())) {
     throw std::runtime_error("FATAL: JVM entry point only accepts an array of stings!");
    }
   } else {
    throw std::runtime_error("FATAL: You must provide a non-null array of arguments for the JVM entry point!");
   }
-  auto args = (JArray<JString *> *)oArgs;
+  auto args = (JArray<JString> *)oArgs;
   [[maybe_unused]]
   const auto&& context = setVmContext();
   if (running) {

@@ -31,7 +31,7 @@ namespace FakeJni {
   bool operator==(const std::string & str) const;
   template<typename T>
   bool operator!=(T operand) const;
-  JString& operator=(const JString& str) const;
+  JString& operator=(const JString& str);
   JInt getLength() const;
  };
 

@@ -2,116 +2,9 @@
 
 #include "fake-jni/jvm.h"
 
-//Internal native array macros
-#define _DEFINE_NATIVE_ARRAY(fake_object, jni_struct, component_type)\
-namespace FakeJni {\
- class fake_object;\
- namespace _CX {\
-  template<>\
-  class JniArrayTypeBase<fake_object> {\
-  public:\
-   using component_t = component_type;\
-   static constexpr const auto isRegisteredType = true;\
-  };\
- }\
- namespace _CX {\
-  template<>\
-  class JniTypeBase<fake_object> {\
-  private:\
-   static constexpr const char arrayPrefix[] = "[";\
-  public:\
-   static constexpr const bool isRegisteredType = true;\
-   static constexpr const bool isClass = __is_class(fake_object);\
-   static constexpr const auto signature = CX::Concat<arrayPrefix, JniTypeBase<component_type>::signature>::result;\
-   static constexpr const bool hasComplexHierarchy = CastDefined<fake_object>::value;\
-  };\
-  template<>\
-  class JniTypeBase<JArray<fake_object>> {\
-  public:\
-   static constexpr const bool isRegisteredType = JniTypeBase<fake_object>::isRegisteredType;\
-   static constexpr const bool isClass = JniTypeBase<fake_object>::isClass;\
-   static constexpr const auto signature = JniTypeBase<fake_object>::signature;\
-   static constexpr const bool hasComplexHierarchy = JniTypeBase<fake_object>::hasComplexHierarchy;\
-  };\
-  template<>\
-  class JniTypeBase<jni_struct> {\
-  public:\
-   static constexpr const bool isRegisteredType = JniTypeBase<fake_object>::isRegisteredType;\
-   static constexpr const bool isClass = JniTypeBase<fake_object>::isClass;\
-   static constexpr const auto signature = JniTypeBase<fake_object>::signature;\
-   static constexpr const bool hasComplexHierarchy = JniTypeBase<fake_object>::hasComplexHierarchy;\
-  };\
- }\
- template<>\
- const std::shared_ptr<const FakeJni::JClass> &FakeJni::JArray<fake_object>::getDescriptor() noexcept;\
- class fake_object : public JArray<fake_object> {\
- public:\
-  template<typename T>\
-  operator T() const;\
-  using JArray<fake_object>::JArray;\
-  inline static const std::shared_ptr<const FakeJni::JClass> &getDescriptor() noexcept {\
-   return JArray<fake_object>::getDescriptor();\
-  }\
- };\
- template<typename T>\
- fake_object::operator T() const {\
-  using component_t = typename CX::ComponentTypeResolver<T>::type;\
-  constexpr const auto \
-   downcast = __is_base_of(fake_object, component_t),\
-   upcast = __is_base_of(component_t, fake_object),\
-   jnicast = CX::MatchAny<component_t, _jobject, _jarray, jni_struct>::value;\
-   static_assert(\
-    downcast || upcast || jnicast,\
-    #fake_object " can only be upcast, downcast, or converted to _jobject, _jarray or " #jni_struct\
-   );\
-   auto ptr = const_cast<fake_object *>(this);\
-   if constexpr(downcast || upcast) {\
-    return (T&)*ptr;\
-   } else if constexpr(jnicast) {\
-    return CX::union_cast<T>((JArrayBase *)this);\
-   }\
- }\
-}
-
-#define _COMPONENT_T(obj) typename CX::ComponentTypeResolver<obj>::type
-
-//User macros
-#define DECLARE_NATIVE_ARRAY_DESCRIPTOR(fake_object) \
-namespace FakeJni::_CX {\
- template<>\
- class JniArrayTypeBase<_COMPONENT_T(fake_object)> {\
- public:\
-  using component_t = _COMPONENT_T(fake_object);\
-  static constexpr const auto isRegisteredType = true;\
- };\
- template<>\
- class JniTypeBase<JArray<_COMPONENT_T(fake_object)>> {\
-  static constexpr const char arrayPrefix[] = "[";\
- public:\
-  static constexpr const bool isRegisteredType = true;\
-  static constexpr const bool isClass = __is_class(JArray<_COMPONENT_T(fake_object)>);\
-  static constexpr const auto signature = CX::Concat<arrayPrefix, JniTypeBase<_COMPONENT_T(fake_object)>::signature>::result;\
-  static constexpr const bool hasComplexHierarchy = CastDefined<JArray<_COMPONENT_T(fake_object)>>::value;\
- };\
-} \
-template<>\
-const std::shared_ptr<const FakeJni::JClass> &FakeJni::JArray<_COMPONENT_T(fake_object)>::getDescriptor() noexcept;
-
-#define DEFINE_NATIVE_ARRAY_DESCRIPTOR(fake_object) \
-template<>\
-const std::shared_ptr<const FakeJni::JClass> &FakeJni::JArray<_COMPONENT_T(fake_object)>::getDescriptor() noexcept { \
- static const std::shared_ptr<const FakeJni::JClass> descriptor (new FakeJni::JClass {\
-  FakeJni::JClass::PUBLIC,\
-  FakeJni::_CX::JClassBreeder<FakeJni::JArray<_COMPONENT_T(fake_object)>> {\
-   {FakeJni::Field<&JArray<_COMPONENT_T(fake_object)>::length> {}, "length"}\
-  }\
- });\
- return descriptor; \
-}
-
 namespace FakeJni {
  //Utility base, not a registered fake-jni type
- template<typename T>
+ template<typename T, bool Primitive = _CX::IsPrimitive<T>::value>
  class JArray;
 
  class JArrayBase : public JObject {
@@ -123,84 +16,54 @@ namespace FakeJni {
  };
 
  //Immutable array base
- template<typename T>
- class JArray<const T> : public JArrayBase {
-  friend T;
-  friend JArray<T>;
-
- private:
-  template<bool = _CX::JniArrayTypeBase<T>::isRegisteredType>
-  struct ComponentTrait;
-
-  template<>
-  struct ComponentTrait<false> : CX::false_type {
-  private:
-   struct AssertionError {
-    constexpr AssertionError() noexcept {
-     //Will always fail
-     static_assert(
-      _CX::JniArrayTypeBase<T>::isRegisteredType,
-      "You must declare the native array that you want to use in the global namespace using "
-      "DECLARE_NATIVE_ARRAY_DESCRIPTOR(type), and then allocate it's descriptor somewhere in your program, using "
-      "DEFINE_NATIVE_ARRAY_DESCRIPTOR(type), so that it may be registered on Jvm instances!"
-     );
-    }
-   };
-
-   static constexpr const AssertionError assert{};
-
-  public:
-   using component_t = T;
-  };
-
-  template<>
-  struct ComponentTrait<true> : CX::true_type {
-   using component_t = typename _CX::JniArrayTypeBase<T>::component_t;
-  };
-
- public:
-  using component = typename ComponentTrait<>::component_t;
-
- private:
+ template<typename Component, typename Base>
+ class JArrayImpl : public Base {
+ protected:
   JInt length;
-  component * array;
+  Component * array;
 
+ private:
   static JInt boundsCheck(JInt len);
 
  public:
   template<typename C>
   operator C() const;
 
-  JArray(std::initializer_list<component>);
-  explicit JArray(const JArray<T> & array);
-  explicit JArray(JInt size);
-  explicit JArray(component * arr, JInt length);
-  JArray();
-  virtual ~JArray();
+  JArrayImpl(std::initializer_list<Component>);
+  explicit JArrayImpl(const JArrayImpl<Component, Base> & array);
+  explicit JArrayImpl(JInt size);
+  explicit JArrayImpl(Component * arr, JInt length);
+  JArrayImpl() : JArrayImpl(0) {}
+  virtual ~JArrayImpl();
 
   inline JInt getSize() const final {
    return length;
   }
 
-  inline component* getArray() const {
-   return const_cast<JArray<const T>&>(*this).array;
+  inline const Component* getArray() const {
+   return array;
   }
 
-  const component& operator[](JInt i) const;
+  inline Component* getArray() {
+   return array;
+  }
+
+  const Component& operator[](JInt i) const;
+
+  JArrayImpl<Component, Base>& operator=(const JArrayImpl<Component, Base> & arr);
+  Component& operator[](JInt i);
  };
 
  //Mutable array implementation
  template<typename T>
- class JArray : public JArray<const T> {
- private:
-  using base_t = typename CX::ComponentTypeResolver<T>::type;
-
+ class JArray<T, true> : public JArrayImpl<T, JArrayBase> {
  public:
-  using JArray<const T>::JArray;
-  using component = typename JArray<const T>::component;
+  using component = T;
+
+  using JArrayImpl<T, JArrayBase>::JArrayImpl;
 
   //fake-jni metadata
-  static constexpr const auto name = _CX::JniTypeBase<JArray<base_t>>::signature;
+  static constexpr const auto name = _CX::JniTypeBase<JArray<T>>::signature;
   static const std::shared_ptr<const JClass> & getDescriptor() noexcept;
   virtual const JClass & getClass() const noexcept override {
    return *getDescriptor();
@@ -208,24 +71,30 @@ namespace FakeJni {
   virtual std::shared_ptr<const JClass> getClassRef() const noexcept override {
    return getDescriptor();
   }
+ };
 
-  JArray<T>& operator=(const JArray<T> & arr) const;
-  const component& operator[](JInt i) const;
-  component& operator[](JInt i);
+ struct JObjectArrayBase : JArrayBase {
+  virtual std::shared_ptr<JObject> getObject(JInt index) = 0;
+  virtual void setObject(JInt index, std::shared_ptr<JObject> obj) = 0;
  };
 
  template<typename T>
- class JArray<T *> : public JArray<T> {
- private:
-  using base_t = JArray<T>;
-
+ class JArray<T, false> : public JArrayImpl<std::shared_ptr<T>, JObjectArrayBase> {
  public:
-  using JArray<T>::JArray;
+  using component = std::shared_ptr<T>;
 
-  static constexpr const auto & name = base_t::name;
-  inline static const std::shared_ptr<const JClass> & getDescriptor() noexcept {
-   return base_t::getDescriptor();
+  using JArrayImpl<std::shared_ptr<T>, JObjectArrayBase>::JArrayImpl;
+
+  std::shared_ptr<JObject> getObject(JInt index) override {
+   return (*this)[index];
   }
+  void setObject(JInt index, std::shared_ptr<JObject> obj) override {
+   (*this)[index] = std::dynamic_pointer_cast<T>(obj);
+  }
+
+  //fake-jni metadata
+  static constexpr const auto name = _CX::JniTypeBase<JArray<T>>::signature;
+  static const std::shared_ptr<const JClass> & getDescriptor() noexcept;
   virtual const JClass & getClass() const noexcept override {
    return *getDescriptor();
   }
@@ -234,25 +103,18 @@ namespace FakeJni {
   }
  };
 
+ namespace _CX {
  template<typename T>
- class JArray<T &> : public JArray<T> {
+ class JniTypeBase<JArray<T>> {
  private:
-  using base_t = JArray<T>;
-
+  static constexpr const char arrayPrefix[] = "[";
  public:
-  using JArray<T>::JArray;
-
-  static constexpr const auto & name = base_t::name;
-  inline static const std::shared_ptr<const JClass> & getDescriptor() noexcept {
-   return base_t::getDescriptor();
-  }
-  virtual const JClass & getClass() const noexcept override {
-   return *getDescriptor();
-  }
-  virtual std::shared_ptr<const JClass> getClassRef() const noexcept override {
-   return getDescriptor();
-  }
+  static constexpr const bool isRegisteredType = true;
+  static constexpr const bool isClass = true;
+  static constexpr const auto signature = CX::Concat<arrayPrefix, JniTypeBase<T>::signature>::result;
+  static constexpr const bool hasComplexHierarchy = false;
  };
+ }
 
  //ArrayBase template members
  template<typename T>
@@ -275,100 +137,100 @@ namespace FakeJni {
  }
 
  //Immutable JArray template members
- template<typename T>
+ template<typename T, typename Base>
  template<typename C>
- JArray<const T>::operator C() const {
+ JArrayImpl<T, Base>::operator C() const {
   return JArrayBase::operator C();
  }
 
- template<typename T>
- inline JInt JArray<const T>::boundsCheck(JInt len) {
+ template<typename T, typename Base>
+ inline JInt JArrayImpl<T, Base>::boundsCheck(JInt len) {
   if (len < 0) {
    throw std::out_of_range("FATAL: Arrays cannot have a negative size!");
   }
   return len;
  }
 
- template<typename T>
- JArray<const T>::JArray(std::initializer_list<component> list) : JArray((JInt)list.size()) {
+ template<typename T, typename Base>
+ JArrayImpl<T, Base>::JArrayImpl(std::initializer_list<T> list) : JArrayImpl((JInt)list.size()) {
   size_t i = 0;
   for (auto element : list) {
    array[i++] = element;
   }
  }
 
- template<typename T>
- JArray<const T>::JArray(const JArray<T> & array) : JArray(array.length) {
+ template<typename T, typename Base>
+ JArrayImpl<T, Base>::JArrayImpl(const JArrayImpl<T, Base> & array) : JArrayImpl(array.length) {
   memcpy(array, array.array, length);
  }
 
- template<typename T>
- JArray<const T>::JArray(const JInt size) :
+ template<typename T, typename Base>
+ JArrayImpl<T, Base>::JArrayImpl(const JInt size) :
   length(boundsCheck(size)),
-  array(new component[length])
+  array(new T[length])
  {}
 
- template<typename T>
- JArray<const T>::JArray(component * const arr, const JInt length) : JArray(length) {
+ template<typename T, typename Base>
+ JArrayImpl<T, Base>::JArrayImpl(T * const arr, const JInt length) : JArrayImpl(length) {
   for (JInt i = 0; i < length; i++) {
    array[i] = arr[i];
   }
  }
 
- template<typename T>
- JArray<const T>::JArray() : JArray(0)
- {}
-
- template<typename T>
- JArray<const T>::~JArray() {
+ template<typename T, typename Base>
+ JArrayImpl<T, Base>::~JArrayImpl() {
   delete[] array;
  }
 
- template<typename T>
- const typename JArray<const T>::component& JArray<const T>::operator[](const JInt i) const {
+ template<typename T, typename Base>
+ const T& JArrayImpl<T, Base>::operator[](const JInt i) const {
   return array[i];
  }
 
  //Mutable JArray template members
- template<typename T>
- const typename JArray<T>::component& JArray<T>::operator[](JInt i) const {
-  return JArray<const T>::operator[](i);
- }
-
- template<typename T>
- typename JArray<T>::component& JArray<T>::operator[](const JInt i) {
-  if (i > JArray<const T>::length) {
+ template<typename T, typename Base>
+ T& JArrayImpl<T, Base>::operator[](const JInt i) {
+  if (i > length) {
    throw std::out_of_range("Requested index out of range!");
   }
-  return JArray<const T>::array[i];
+  return array[i];
  }
 
- template<typename T>
- JArray<T>& JArray<T>::operator=(const JArray<T> &arr) const {
-  auto& ref = const_cast<JArray<T>&>(*this);
+ template<typename T, typename Base>
+ JArrayImpl<T, Base>& JArrayImpl<T, Base>::operator=(const JArrayImpl<T, Base> &arr) {
+  auto& ref = const_cast<JArrayImpl<T, Base>&>(*this);
   if (ref.length != arr.length) {
    ref.length = arr.length;
    delete[] ref.array;
-   ref.array = new component[ref.length];
+   ref.array = new T[ref.length];
   }
   for (JInt i = 0; i < ref.length; i++) {
    ref.array[i] = arr.array[i];
   }
   return ref;
  }
-}
 
-//Actual fake-jni array types
-//Provides array types for all default JNI defined arrays and their Java counterparts
-_DEFINE_NATIVE_ARRAY(JBooleanArray, _jbooleanArray, JBoolean)
-_DEFINE_NATIVE_ARRAY(JByteArray, _jbyteArray, JByte)
-_DEFINE_NATIVE_ARRAY(JCharArray, _jcharArray, JChar)
-_DEFINE_NATIVE_ARRAY(JShortArray, _jshortArray, JShort)
-_DEFINE_NATIVE_ARRAY(JIntArray, _jintArray, JInt)
-_DEFINE_NATIVE_ARRAY(JFloatArray, _jfloatArray, JFloat)
-_DEFINE_NATIVE_ARRAY(JLongArray, _jlongArray, JLong)
-_DEFINE_NATIVE_ARRAY(JDoubleArray, _jdoubleArray, JDouble)
-_DEFINE_NATIVE_ARRAY(JObjectArray, _jobjectArray, JObject)
+ template<typename T>
+ const std::shared_ptr<const FakeJni::JClass> &FakeJni::JArray<T, false>::getDescriptor() noexcept {
+  static const std::shared_ptr<const FakeJni::JClass> descriptor (new FakeJni::JClass {
+   FakeJni::JClass::PUBLIC,
+   FakeJni::_CX::JClassBreeder<FakeJni::JArray<T>> {
+    {FakeJni::Field<&JArray<T>::length> {}, "length"}
+   }
+  });
+  return descriptor;
+ }
+
+
+ using JBooleanArray = JArray<JBoolean>;
+ using JByteArray = JArray<JByte>;
+ using JCharArray = JArray<JChar>;
+ using JShortArray = JArray<JShort>;
+ using JIntArray = JArray<JInt>;
+ using JFloatArray = JArray<JFloat>;
+ using JLongArray = JArray<JLong>;
+ using JDoubleArray = JArray<JDouble>;
+}
 
 //Clean up internal macros
 #undef _DEFINE_NATIVE_ARRAY

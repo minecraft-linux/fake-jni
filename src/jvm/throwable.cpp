@@ -86,8 +86,6 @@ void JThrowable::printStackTrace() const {
  }
 }
 
-DEFINE_NATIVE_ARRAY_DESCRIPTOR(FakeJni::JThrowable *)
-
 //Allocate JClass descriptor for JThrowable
 DEFINE_NATIVE_DESCRIPTOR(JThrowable)
  {Constructor<JThrowable> {}},

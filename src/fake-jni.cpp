@@ -37,5 +37,3 @@ namespace FakeJni {
   _CERATE_MAIN_METHOD_CHECK
  }
 }
-
-DEFINE_NATIVE_ARRAY_DESCRIPTOR(FakeJni::JString *)
