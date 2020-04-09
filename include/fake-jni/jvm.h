@@ -1331,6 +1331,11 @@ namespace FakeJni {
     ownsEnv = true;
    }
   }
+  JniEnvContext() {
+   env = JniEnv::getCurrentEnv();
+   if (env == nullptr)
+       throw std::runtime_error("No active env");
+  }
   ~JniEnvContext() {
    if (ownsEnv)
     delete env;
@@ -1345,6 +1350,9 @@ namespace FakeJni {
  struct LocalFrame : JniEnvContext {
 
   LocalFrame(const Jvm &vm, size_t size = 16) : JniEnvContext(vm) {
+   getJniEnv().pushLocalFrame(size);
+  }
+  LocalFrame(size_t size = 16) {
    getJniEnv().pushLocalFrame(size);
   }
   ~LocalFrame() {
