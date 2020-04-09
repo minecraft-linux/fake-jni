@@ -7,7 +7,7 @@ namespace FakeJni {
 
  jint InvokeInterface::attachCurrentThread(Jvm *vm, void **penv, void *args) const {
   auto env = JniEnv::getCurrentEnv();
-  if ((env != nullptr && &env->vm != vm) || javaOwnedEnv.get())
+  if ((env != nullptr && &env->vm != vm) || (env == nullptr && javaOwnedEnv.get()))
    return JNI_ERR;
   if (env == nullptr) {
    javaOwnedEnv = vm->createJniEnv();
