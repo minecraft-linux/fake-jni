@@ -50,6 +50,8 @@ namespace FakeJni {
  }
 
  jobject JniEnv::createLocalReference(std::shared_ptr<JObject> object) {
+  if (!object)
+      return nullptr;
   size_t index = localFrames.back().createReference(std::move(object));
   return JniReferenceDescription(index, false).ptr;
  }
