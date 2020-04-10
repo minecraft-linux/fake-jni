@@ -9,8 +9,6 @@
 #include <map>
 #include <functional>
 
-#include <polyfill/to_string.h>
-
 #define PARSER_CALLBACK(identifier, value) \
 parser[#identifier[0]] = [&](char * token) { prototype.push_back(&value); };
 

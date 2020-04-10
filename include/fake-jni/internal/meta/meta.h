@@ -121,9 +121,9 @@ namespace FakeJni {
   struct arbitrary_align_t {
    unsigned char data[N];
 
-   template<unsigned M>
-   bool operator==(const arbitrary_align_t<M> arbitrary) const noexcept {
-    if constexpr(N == M) {
+   template<unsigned _N>
+   bool operator==(const arbitrary_align_t<_N> arbitrary) const noexcept {
+    if constexpr(N == _N) {
      return !memcmp(data, arbitrary.data, (size_t)N);
     }
     return false;

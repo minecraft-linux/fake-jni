@@ -1230,7 +1230,7 @@ namespace FakeJni {
 
   PointerList<const Library *> libraries;
   std::map<std::string, std::shared_ptr<const JClass>> classes;
-  mutable std::shared_timed_mutex library_mutex, classes_mutex;
+  mutable std::shared_mutex library_mutex, classes_mutex;
 
   bool removeLibrary(const Library * library, const std::string & options);
 

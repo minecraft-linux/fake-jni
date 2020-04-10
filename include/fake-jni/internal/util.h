@@ -57,18 +57,18 @@ namespace FakeJni {
     list(const_cast<PointerList<element_t> &>(list)),
     entry(entry)
    {
-    std::lock_guard<std::mutex> accessLock(this->list.iteratorsMutex);
+    std::scoped_lock iteratorsLock{this->list.iteratorsMutex};
     this->list.iterators.insert(this);
    }
 
    ~Iterator() {
-    std::lock_guard<std::mutex> accessLock(list.iteratorsMutex);
+    std::scoped_lock iteratorsLock{list.iteratorsMutex};
     list.iterators.erase(this);
    }
 
    Iterator & operator++() {
     if (entry) {
-     std::lock_guard<std::mutex> modLock(modMutex);
+     std::scoped_lock modLock{modMutex};
      entry = entry->next;
     }
     return *this;
@@ -85,7 +85,7 @@ namespace FakeJni {
    const element_t & operator*() const {
     if (entry) {
      auto& non_const_ref = const_cast<Iterator &>(*this);
-     std::lock_guard<std::mutex> modLock(non_const_ref.modMutex);
+     std::scoped_lock modLock{non_const_ref.modMutex};
      return entry->t;
     }
     throw std::runtime_error("Tried to seek past end of list!");
@@ -171,7 +171,7 @@ namespace FakeJni {
   }
 
   void insert(element_t t, typename Entry::deallocator_t deallocator) {
-   std::lock_guard<std::mutex> accessLock(accessMutex);
+   std::scoped_lock accessLock{accessMutex};
    _size += 1;
    auto entry = new Entry{t, deallocator, nullptr};
    if (!head) {
@@ -184,7 +184,7 @@ namespace FakeJni {
   }
 
   Iterator erase(element_t t) {
-   std::lock_guard<std::mutex> accessLock(accessMutex);
+   std::scoped_lock accessLock{accessMutex};
    Entry
     *entry = head,
     *last = nullptr;
@@ -232,7 +232,7 @@ namespace FakeJni {
   }
 
   void clear() noexcept {
-   std::lock_guard<std::mutex> accessLock(accessMutex);
+   std::scoped_lock accessLock{accessMutex};
    _size = 0;
    lockIterators();
    //delete all entries and elements
@@ -253,7 +253,7 @@ namespace FakeJni {
   }
 
   element_t & operator[](uint32_t index) {
-   std::lock_guard<std::mutex> accessLock(accessMutex);
+   std::scoped_lock accessLock{accessMutex};
    Entry *entry = head;
    while (entry && index > 0) {
     entry = entry->next;
@@ -327,7 +327,7 @@ delete[] token;
 
   void parse(const char * signature, Args... args) const {
    auto& ref = const_cast<JniFunctionParser &>(*this);
-   std::lock_guard<std::mutex> accessLock(ref.parserMutex);
+   std::scoped_lock lock(ref.parserMutex);
    char parensMatched = -2;
    while (*signature) {
     switch(*signature) {

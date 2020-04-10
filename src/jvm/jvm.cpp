@@ -6,7 +6,6 @@
 #include <shared_mutex>
 #include <csignal>
 #include <cxxabi.h>
-#include <polyfill/to_string.h>
 
 #define UNW_LOCAL_ONLY
 #include <fake-jni/jvm.h>
@@ -296,7 +295,7 @@ case _signal: {\
   const std::string & options,
   LibraryOptions loptions
  ) {
-  std::lock_guard<std::shared_timed_mutex> libraryLock(library_mutex);
+  std::scoped_lock libraryLock(library_mutex);
   [[maybe_unused]]
   const auto&& context = setVmContext();
   std::string path = rpath.empty() ? "(embedded)" : rpath;
@@ -354,7 +353,7 @@ case _signal: {\
  }
 
  bool Jvm::removeLibrary(const Library * library, const std::string & options) {
-  std::lock_guard<std::shared_timed_mutex> libraryLock(library_mutex);
+  std::scoped_lock libraryLock(library_mutex);
   [[maybe_unused]]
   const auto&& context = setVmContext();
 #ifdef FAKE_JNI_DEBUG
