@@ -245,7 +245,7 @@ case _signal: {\
  }
 
  bool Jvm::registerClass(std::shared_ptr<const JClass> clazz) {
-  std::lock_guard<std::shared_timed_mutex> lock (classes_mutex);
+  std::lock_guard<std::shared_mutex> lock (classes_mutex);
   auto found = classes.find(clazz->getName());
   if (found != classes.end()) {
 #ifdef FAKE_JNI_DEBUG
@@ -264,7 +264,7 @@ case _signal: {\
  }
 
  bool Jvm::unregisterClass(const JClass * clazz) {
-  std::lock_guard<std::shared_timed_mutex> lock (classes_mutex);
+  std::lock_guard<std::shared_mutex> lock (classes_mutex);
   auto found = classes.find(clazz->getName());
   if (found != classes.end() && found->second.get() == clazz) {
    classes.erase(found);
@@ -283,7 +283,7 @@ case _signal: {\
  }
 
  std::shared_ptr<const JClass> Jvm::findClass(const char * name) const {
-  std::shared_lock<std::shared_timed_mutex> lock (classes_mutex);
+  std::shared_lock<std::shared_mutex> lock (classes_mutex);
   auto found = classes.find(name);
   if (found != classes.end())
     return found->second;
@@ -397,7 +397,7 @@ case _signal: {\
 //  currentVm = this;
   running = true;
   try {
-   std::shared_lock<std::shared_timed_mutex> lock (classes_mutex);
+   std::shared_lock<std::shared_mutex> lock (classes_mutex);
    const JClass * encapsulatingClass = nullptr;
    const JMethodID * main = nullptr;
    for (auto& clazz : classes) {
