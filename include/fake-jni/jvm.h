@@ -1809,7 +1809,7 @@ namespace FakeJni {
  template<typename T>
  void Jvm::setJniEnvType() {
   static_assert(__is_base_of(JniEnv, T), "You must register a subtype of JniEnv!");
-  jniEnvFactory = [this]() { return std::make_unique<T>(*this); };
+  jniEnvFactory = [this]() -> std::unique_ptr<JniEnv> { return std::make_unique<T>(*this); };
  }
 
  template<typename T>
