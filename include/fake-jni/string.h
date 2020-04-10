@@ -2,6 +2,7 @@
 
 #include "fake-jni/jvm.h"
 #include "fake-jni/array.h"
+#include <string>
 
 //JNI java/lang/String implementation
 namespace FakeJni {
@@ -24,6 +25,7 @@ namespace FakeJni {
   explicit JString(JInt size);
   JString(const char * str);
   JString(const JChar * str, JInt size);
+  JString(std::string const &str);
   virtual ~JString() = default;
 
   bool operator==(const JString & str) const;
@@ -33,6 +35,8 @@ namespace FakeJni {
   bool operator!=(T operand) const;
   JString& operator=(const JString& str);
   JInt getLength() const;
+
+  std::string asStdString() const;
  };
 
  template<typename T>

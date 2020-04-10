@@ -28,6 +28,9 @@ namespace FakeJni {
   memcpy(getArray(), (char *)str, (size_t)size);
  }
 
+ JString::JString(std::string const &str) : JString(str.c_str()) {
+ }
+
  bool JString::operator==(const JString & str) const {
   const auto sLen = str.getLength();
   if (length == sLen) {
@@ -57,6 +60,10 @@ namespace FakeJni {
 
  JInt JString::getLength() const {
   return length;
+ }
+
+ std::string JString::asStdString() const {
+  return std::string ((const char *) getArray(), getLength());
  }
 }
 
