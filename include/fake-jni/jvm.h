@@ -1699,12 +1699,13 @@ namespace FakeJni {
     }
    }
    case REGISTER_NATIVES_FUNC: {
+    LocalFrame frame (env.vm);
     const auto argc = descriptor->nargs - 2;
     void * values[descriptor->nargs];
     values[0] = new JNIEnv*;
     values[1] = new jobject*;
     *((JNIEnv **)values[0]) = const_cast<JniEnv*>(&env);
-    *((jobject *)values[1]) = (jobject)clazzOrInst;
+    *((jobject *)values[1]) = frame.getJniEnv().createLocalReference(((JObject*) clazzOrInst)->shared_from_this()); // TODO: migrate to simple-pointer
     //set up arguments
     const auto resolverOffset = CX::IsSame<arg_t, jvalue>::value ? argc : 0;
     for (unsigned int i = 0; i < argc; i++) {
