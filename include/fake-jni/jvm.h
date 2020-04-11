@@ -1379,7 +1379,7 @@ namespace FakeJni {
 
    //Constructor for fields
    template<auto F>
-   constexpr ClassDescriptorElement(Field<F> field, const char * const name, uint32_t modifiers = JFieldID::PUBLIC) noexcept :
+   constexpr ClassDescriptorElement(Field<F> field, const char * const name, uint32_t modifiers = JFieldID::PUBLIC | (!CX::IsMemberField<decltype(F)>::value ? JFieldID::STATIC : 0)) noexcept :
     processHook([=](JClass * const clazz) -> bool {
      return clazz->registerField(new JFieldID(field.field, name, modifiers));
     })
