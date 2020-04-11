@@ -1705,7 +1705,10 @@ namespace FakeJni {
     values[0] = new JNIEnv*;
     values[1] = new jobject*;
     *((JNIEnv **)values[0]) = const_cast<JniEnv*>(&env);
-    *((jobject *)values[1]) = frame.getJniEnv().createLocalReference(((JObject*) clazzOrInst)->shared_from_this()); // TODO: migrate to simple-pointer
+    if (clazzOrInst)
+     *((jobject *)values[1]) = frame.getJniEnv().createLocalReference(((JObject*) clazzOrInst)->shared_from_this()); // TODO: migrate to simple-pointer
+    else
+     *((jobject *)values[1]) = nullptr;
     //set up arguments
     const auto resolverOffset = CX::IsSame<arg_t, jvalue>::value ? argc : 0;
     for (unsigned int i = 0; i < argc; i++) {
