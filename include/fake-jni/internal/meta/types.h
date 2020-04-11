@@ -185,15 +185,6 @@ private:
  }
 };
 
-struct jvalue_option {
- const bool present;
- const jvalue value;
-
- jvalue_option() noexcept : present(false), value{} {}
-
- jvalue_option(jvalue value) noexcept : present(true), value(value) {}
-};
-
 enum jobjectRefType {
  JNIInvalidRefType = 0,
  JNILocalRefType = 1,

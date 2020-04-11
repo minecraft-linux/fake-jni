@@ -120,7 +120,7 @@ namespace FakeJni {
    }
 
    [[gnu::always_inline]]
-   inline static jvalue_option convert_return(JniEnv const &env, T value) {
+   inline static jvalue convert_return(JniEnv const &env, T value) {
     if constexpr(IsPrimitive<T>::value) {
      return jvalue{value};
     } else {
@@ -145,7 +145,7 @@ namespace FakeJni {
    }
 
    [[gnu::always_inline]]
-   inline static jvalue_option convert_return(JniEnv const &env, std::shared_ptr<T> value) {
+   inline static jvalue convert_return(JniEnv const &env, std::shared_ptr<T> value) {
     return jvalue{createLocalReturnReference(env, std::move(value))};
    }
   };
@@ -162,7 +162,7 @@ namespace FakeJni {
 
    template<typename... DecomposedVarargs>
    [[gnu::always_inline]]
-   inline static jvalue_option invokeV(JniEnv const &env, void * const inst, erased_t func, CX::va_list_t& list, DecomposedVarargs... args) {
+   inline static jvalue invokeV(JniEnv const &env, void * const inst, erased_t func, CX::va_list_t& list, DecomposedVarargs... args) {
     return FunctionAccessor<N - 1, func_t>::template invokeV<DecomposedVarargs..., arg_t>(
      env,
      inst,
@@ -175,7 +175,7 @@ namespace FakeJni {
 
    template<typename... DecomposedJValues>
    [[gnu::always_inline]]
-   inline static jvalue_option invokeA(JniEnv const &env, void * const inst, erased_t func, jvalue * const values, DecomposedJValues... args) {
+   inline static jvalue invokeA(JniEnv const &env, void * const inst, erased_t func, jvalue * const values, DecomposedJValues... args) {
     return FunctionAccessor<N - 1, func_t>::template invokeA<DecomposedJValues..., arg_t>(
      env,
      inst,
@@ -194,14 +194,14 @@ namespace FakeJni {
    //Template pack should match Args
    template<typename... Args2>
    [[gnu::always_inline]]
-   inline static jvalue_option invokeV(JniEnv const &env, void * const inst, erasedType func, CX::va_list_t& list, Args2... args) {
+   inline static jvalue invokeV(JniEnv const &env, void * const inst, erasedType func, CX::va_list_t& list, Args2... args) {
     va_end(list);
     return invokeA(env, inst, func, nullptr, args...);
    }
 
    template<typename... Args2>
    [[gnu::always_inline]]
-   inline static jvalue_option invokeA(JniEnv const &env, void * const inst, erasedType func, jvalue *values, Args2... args) {
+   inline static jvalue invokeA(JniEnv const &env, void * const inst, erasedType func, jvalue *values, Args2... args) {
     static_assert(
      CX::IsSame<CX::Dummy<Args...>, CX::Dummy<Args2...>>::value,
      "Function argument list does not match base invoker arguments!"
@@ -225,7 +225,7 @@ namespace FakeJni {
 
    template<typename... DecomposedVarargs>
    [[gnu::always_inline]]
-   inline static jvalue_option invokeV(JniEnv const &env, erased_t func, CX::va_list_t& list, DecomposedVarargs... args) {
+   inline static jvalue invokeV(JniEnv const &env, erased_t func, CX::va_list_t& list, DecomposedVarargs... args) {
     return FunctionAccessor<N - 1, func_t>::template invokeV<DecomposedVarargs..., arg_t>(
      env,
      func,
@@ -237,7 +237,7 @@ namespace FakeJni {
 
    template<typename... DecomposedJValues>
    [[gnu::always_inline]]
-   inline static jvalue_option invokeA(JniEnv const &env, erased_t func, jvalue * const values, DecomposedJValues... args) {
+   inline static jvalue invokeA(JniEnv const &env, erased_t func, jvalue * const values, DecomposedJValues... args) {
     return FunctionAccessor<N - 1, func_t>::template invokeA<DecomposedJValues..., arg_t>(
      env,
      func,
@@ -256,14 +256,14 @@ namespace FakeJni {
    //Template pack should match Args
    template<typename... Args2>
    [[gnu::always_inline]]
-   inline static jvalue_option invokeV(JniEnv const &env, erasedType func, CX::va_list_t& list, Args2... args) {
+   inline static jvalue invokeV(JniEnv const &env, erasedType func, CX::va_list_t& list, Args2... args) {
     va_end(list);
     return invokeA(env, func, nullptr, args...);
    }
 
    template<typename... Args2>
    [[gnu::always_inline]]
-   inline static jvalue_option invokeA(JniEnv const &env, erasedType func, jvalue * const values, Args2... args) {
+   inline static jvalue invokeA(JniEnv const &env, erasedType func, jvalue * const values, Args2... args) {
     static_assert(
      CX::IsSame<CX::Dummy<Args...>, CX::Dummy<Args2...>>::value,
      "Function argument list does not match base invoker arguments!"
@@ -287,7 +287,7 @@ namespace FakeJni {
 
    template<typename... DecomposedVarargs>
    [[gnu::always_inline]]
-   inline static jvalue_option invokeV(JniEnv const &env, align_t func, CX::va_list_t& list, DecomposedVarargs... args) {
+   inline static jvalue invokeV(JniEnv const &env, align_t func, CX::va_list_t& list, DecomposedVarargs... args) {
     return FunctionAccessor<N - 1, func_t>::template invokeV<DecomposedVarargs..., arg_t>(
      env,
      func,
@@ -299,7 +299,7 @@ namespace FakeJni {
 
    template<typename... DecomposedJValues>
    [[gnu::always_inline]]
-   inline static jvalue_option invokeA(JniEnv const &env, align_t func, jvalue * const values, DecomposedJValues... args) {
+   inline static jvalue invokeA(JniEnv const &env, align_t func, jvalue * const values, DecomposedJValues... args) {
     return FunctionAccessor<N - 1, func_t>::template invokeA<arg_t, DecomposedJValues...>(
      env,
      func,
@@ -316,7 +316,7 @@ namespace FakeJni {
 
    template<typename...>
    [[gnu::always_inline]]
-   inline static jvalue_option invokeA(JniEnv const &env, func_t *func, const char * signature, JNIEnv * envp, void * classOrInst, jvalue * const values) {
+   inline static jvalue invokeA(JniEnv const &env, func_t *func, const char * signature, JNIEnv * envp, void * classOrInst, jvalue * const values) {
     if constexpr(CX::IsSame<R, void>::value) {
       (*func)(envp, classOrInst, values);
     } else {
@@ -326,7 +326,7 @@ namespace FakeJni {
 
    template<typename...>
    [[gnu::always_inline]]
-   inline static jvalue_option invokeV(JniEnv const &env, func_t *func, const char * signature, JNIEnv * envp, void * classOrInst, CX::va_list_t& list) {
+   inline static jvalue invokeV(JniEnv const &env, func_t *func, const char * signature, JNIEnv * envp, void * classOrInst, CX::va_list_t& list) {
     struct Parser {
      JniFunctionParser<CX::va_list_t&> parser;
      bool argsParsed = false;
@@ -376,14 +376,14 @@ namespace FakeJni {
 
    template<typename... Args2>
    [[gnu::always_inline]]
-   inline static jvalue_option invokeV(JniEnv const &env, align_t func, CX::va_list_t& list, Args2... args) {
+   inline static jvalue invokeV(JniEnv const &env, align_t func, CX::va_list_t& list, Args2... args) {
     va_end(list);
     return invokeA(env, func, nullptr, args...);
    }
 
    template<typename... Args2>
    [[gnu::always_inline]]
-   inline static jvalue_option invokeA(JniEnv const &env, align_t func, jvalue * const values, Args2... args) {
+   inline static jvalue invokeA(JniEnv const &env, align_t func, jvalue * const values, Args2... args) {
     static_assert(
      CX::IsSame<CX::Dummy<Args...>, CX::Dummy<Args2...>>::value,
      "Function argument list does not match the base invoker arguments!"
