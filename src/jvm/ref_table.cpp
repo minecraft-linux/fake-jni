@@ -32,21 +32,23 @@ namespace FakeJni {
   if (referencesNextIndex[0] == 0) {
    resizeFrame(references.size() * 2);
   }
-  auto ret = referencesNextIndex[0];
-  referencesNextIndex[0] = referencesNextIndex[ret];
-  if (referencesNextIndex[ret] == 0)
+  auto ret = referencesNextIndex[0] - 1;
+  referencesNextIndex[0] = referencesNextIndex[ret + 1];
+  if (referencesNextIndex[ret + 1] == 0)
    lastReferenceIndex = 0;
-  referencesNextIndex[ret] = 0;
+  referencesNextIndex[ret + 1] = 0;
   return ret;
  }
 
  void JniReferenceTable::returnReference(size_t index) {
-  referencesNextIndex[lastReferenceIndex] = index;
-  lastReferenceIndex = index;
+  referencesNextIndex[lastReferenceIndex] = index + 1;
+  lastReferenceIndex = index + 1;
  }
 
  size_t JniReferenceTable::createReference(std::shared_ptr<JObject> ref) {
   auto ret = reserveReference();
+  if (ret < 0 || ret >= references.size())
+      throw std::runtime_error("bad reference index");
   references[ret] = std::move(ref);
   return startIndex + ret;
  }
