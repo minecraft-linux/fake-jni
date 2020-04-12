@@ -3,10 +3,9 @@
 #include <stdexcept>
 
 namespace FakeJni {
-//TODO implement
- jint NativeInterface::ensureLocalCapacity(jint) const {
-  throw std::runtime_error("FATAL: 'JVMNativeInterface_::ensureLocalCapacity' is unimplemented!");
-  return 0;
+ jint NativeInterface::ensureLocalCapacity(jint capacity) const {
+     env.ensureLocalCapacity(capacity);
+     return 0;
  }
 
  jint NativeInterface::getVersion() const {
