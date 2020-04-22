@@ -1315,9 +1315,11 @@ namespace FakeJni {
   virtual void clearException();
   //Does not return
   virtual void fatalError(const char * message) const;
+#ifdef BUILD_FAKE_JNI_WITH_LIBUNWIND
   [[noreturn]]
   virtual void fatalError(const char * message, ucontext_t * context) const;
   virtual void printBacktrace(ucontext_t * context = nullptr) const;
+#endif
  };
 
  class JniEnvContext {

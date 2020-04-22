@@ -9,7 +9,9 @@
 
 #define UNW_LOCAL_ONLY
 #include <fake-jni/jvm.h>
+#ifdef BUILD_FAKE_JNI_WITH_LIBUNWIND
 #include <libunwind.h>
+#endif
 
 #define DEFAULT_MANGLED_SYMBOL_NAME_CACHE 4096
 
@@ -134,7 +136,11 @@ case _signal: {\
     auto ssig = strsignal(sig);
     char message[strlen(ssig) + (strlen(error) - 2) + 1];
     snprintf(message, sizeof(message), error, ssig);
+#ifdef BUILD_FAKE_JNI_WITH_LIBUNWIND
     vm->fatalError(message, (ucontext_t *)uc);
+#else
+    vm->fatalError(message);
+#endif
    } else {
     switch(sig) {
      _SIG_CASE(SIGABRT, old_abrt_sa)
@@ -451,9 +457,14 @@ case _signal: {\
  }
 
  void Jvm::fatalError(const char * message) const {
+#ifdef BUILD_FAKE_JNI_WITH_LIBUNWIND
   fatalError(message, nullptr);
+#else
+  printf("FATAL: Fatal error thrown on Jvm instance '%s' with message: \n%s\n\n", uuid, message);
+#endif
  }
 
+#ifdef BUILD_FAKE_JNI_WITH_LIBUNWIND
  void Jvm::fatalError(const char * message, ucontext_t * context) const {
   printf("FATAL: Fatal error thrown on Jvm instance '%s' with message: \n%s\n\n", uuid, message);
   try {
@@ -635,6 +646,7 @@ case _signal: {\
    throw UnwindException("unw_step() failed with error code: " + std::to_string(unw_status));
   }
  }
+#endif
 
  jobject _CX::createLocalReturnReference(const JniEnv& env, std::shared_ptr<JObject> ptr) {
   return const_cast<JniEnv &>(env).createLocalReference(ptr);

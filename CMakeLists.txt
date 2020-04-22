@@ -166,6 +166,7 @@ if (BUILD_FAKE_JNI_WITH_LIBUNWIND)
  target_link_libraries(fake-jni libunwind)
  add_dependencies(fake-jni unwind)
  target_include_directories(fake-jni PUBLIC ${unwind_INSTALL_DIR}/include)
+ target_compile_definitions(fake-jni PRIVATE BUILD_FAKE_JNI_WITH_LIBUNWIND)
 endif()
 
 set(BUILD_FAKE_JNI_TESTS ON CACHE BOOL "Enables fake-jni tests")
