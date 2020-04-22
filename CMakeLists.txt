@@ -89,57 +89,60 @@ add_custom_command(
 )
 
 #libunwind
-if(NOT DEFINED UNWIND_CC)
- set(UNWIND_CC ${CMAKE_C_COMPILER})
+set(BUILD_FAKE_JNI_WITH_LIBUNWIND OFF CACHE BOOL "Enables integration with libunwind")
+
+if (BUILD_FAKE_JNI_WITH_LIBUNWIND)
+ if(NOT DEFINED UNWIND_CC)
+  set(UNWIND_CC ${CMAKE_C_COMPILER})
+ endif()
+
+ if(NOT DEFINED UNWIND_CXX)
+  set(UNWIND_CXX ${CMAKE_CXX_COMPILER})
+ endif()
+
+ if(NOT DEFINED UNWIND_CONFIGURE_FLAGS)
+  set(UNWIND_CONFIGURE_FLAGS "--disable-coredump")
+ endif()
+
+ ExternalProject_Add(unwind
+  SOURCE_DIR ${PROJECT_SOURCE_DIR}/libunwind
+  UPDATE_COMMAND ""
+  CONFIGURE_COMMAND <SOURCE_DIR>/autogen.sh && <SOURCE_DIR>/configure ${UNWIND_CONFIGURE_FLAGS} --disable-minidebuginfo --disable-shared --prefix=<INSTALL_DIR> --host=${CMAKE_CXX_COMPILER_TARGET} CC=${UNWIND_CC} CFLAGS=${AUTOMAKE_C_FLAGS} CXX=${UNWIND_CXX} CXXFLAGS=${AUTOMAKE_CXX_FLAGS}
+  BUILD_IN_SOURCE 1
+  BUILD_BYPRODUCTS <INSTALL_DIR>/lib/libunwind.a
+ )
+ ExternalProject_Get_Property(unwind INSTALL_DIR)
+ set(LIBUNWIND_INSTALL_DIR ${INSTALL_DIR}/lib/)
+ ExternalProject_Get_Property(unwind INSTALL_DIR)
+ set(unwind_INSTALL_DIR ${INSTALL_DIR})
+ add_library(libunwind STATIC IMPORTED GLOBAL)
+ file(MAKE_DIRECTORY ${LIBUNWIND_INSTALL_DIR}/include)
+ set_target_properties(libunwind PROPERTIES
+  IMPORTED_LOCATION ${INSTALL_DIR}/lib/libunwind.a
+  INTERFACE_INCLUDE_DIRECTORIES ${LIBUNWIND_INSTALL_DIR}/include
+ )
+
+ #clean up libunwind's non-compliant build artifacts
+ ExternalProject_Get_Property(unwind SOURCE_DIR)
+ add_custom_command(
+  TARGET unwind PRE_BUILD
+  COMMAND git clean -x -d -f
+  COMMAND git reset --hard
+  WORKING_DIRECTORY ${SOURCE_DIR}
+  COMMENT "Cleaning unwind directory..."
+ )
 endif()
-
-if(NOT DEFINED UNWIND_CXX)
- set(UNWIND_CXX ${CMAKE_CXX_COMPILER})
-endif()
-
-if(NOT DEFINED UNWIND_CONFIGURE_FLAGS)
- set(UNWIND_CONFIGURE_FLAGS "--disable-coredump")
-endif()
-
-ExternalProject_Add(unwind
- SOURCE_DIR ${PROJECT_SOURCE_DIR}/libunwind
- UPDATE_COMMAND ""
- CONFIGURE_COMMAND <SOURCE_DIR>/autogen.sh && <SOURCE_DIR>/configure ${UNWIND_CONFIGURE_FLAGS} --disable-minidebuginfo --disable-shared --prefix=<INSTALL_DIR> --host=${CMAKE_CXX_COMPILER_TARGET} CC=${UNWIND_CC} CFLAGS=${AUTOMAKE_C_FLAGS} CXX=${UNWIND_CXX} CXXFLAGS=${AUTOMAKE_CXX_FLAGS}
- BUILD_IN_SOURCE 1
- BUILD_BYPRODUCTS <INSTALL_DIR>/lib/libunwind.a
-)
-ExternalProject_Get_Property(unwind INSTALL_DIR)
-set(LIBUNWIND_INSTALL_DIR ${INSTALL_DIR}/lib/) 
-ExternalProject_Get_Property(unwind INSTALL_DIR)
-set(unwind_INSTALL_DIR ${INSTALL_DIR})
-add_library(libunwind STATIC IMPORTED GLOBAL)
-file(MAKE_DIRECTORY ${LIBUNWIND_INSTALL_DIR}/include)
-set_target_properties(libunwind PROPERTIES
- IMPORTED_LOCATION ${INSTALL_DIR}/lib/libunwind.a
- INTERFACE_INCLUDE_DIRECTORIES ${LIBUNWIND_INSTALL_DIR}/include
-)
-
-#clean up libunwind's non-compliant build artifacts
-ExternalProject_Get_Property(unwind SOURCE_DIR)
-add_custom_command(
- TARGET unwind PRE_BUILD
- COMMAND git clean -x -d -f
- COMMAND git reset --hard
- WORKING_DIRECTORY ${SOURCE_DIR}
- COMMENT "Cleaning unwind directory..."
-)
 
 #fake-jni
 file(GLOB_RECURSE FAKE_JNI_SRC "src/**.cpp")
 add_library(fake-jni STATIC ${FAKE_JNI_SRC})
 
-target_link_libraries(fake-jni dl libffi libunwind)
-add_dependencies(fake-jni ffi unwind)
+target_link_libraries(fake-jni dl libffi)
+add_dependencies(fake-jni ffi)
 target_include_directories(fake-jni PUBLIC
  include
  ${cx_SOURCE_DIR}
  ${ffi_INSTALL_DIR}/include
- ${unwind_INSTALL_DIR}/include
 )
 target_compile_options(fake-jni PUBLIC
  -Wall
@@ -153,6 +156,12 @@ target_compile_options(fake-jni PUBLIC
  -Wno-vla-extension
  -Wno-zero-length-array
 )
+
+if (BUILD_FAKE_JNI_WITH_LIBUNWIND)
+ target_link_libraries(fake-jni libunwind)
+ add_dependencies(fake-jni unwind)
+ target_include_directories(fake-jni PUBLIC ${unwind_INSTALL_DIR}/include)
+endif()
 
 set(BUILD_FAKE_JNI_TESTS ON CACHE BOOL "Enables fake-jni tests")
 set(BUILD_FAKE_JNI_EXAMPLES ON CACHE BOOL "Enables fake-jni examples")
