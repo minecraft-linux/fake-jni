@@ -892,7 +892,7 @@ namespace FakeJni {
   };
 
   template<typename T>
-  T * get(JObject * obj) const;
+  T get(JObject * obj) const;
 
  public:
   const bool isArbitrary;
@@ -1512,7 +1512,7 @@ namespace FakeJni {
  }
 
  template<typename T>
- T* JFieldID::get(JObject * const obj) const {
+ T JFieldID::get(JObject * const obj) const {
   auto clazz = &obj->getClass();
   const JFieldID * fid = this;
   if (clazz != &*JClass::getDescriptor()) {
@@ -1522,19 +1522,19 @@ namespace FakeJni {
    switch (fid->type) {
     case STATIC_PROP: {
      _JFIELDID_STATIC_CHECK(
-      return ((T* (*)(static_prop_t))fid->proxyGetFunc)(staticProp);
+      return ((T (*)(static_prop_t))fid->proxyGetFunc)(staticProp);
      )
     }
     case MEMBER_PROP: {
      _JFIELDID_STATIC_CHECK(
-      return ((T* (*)(void *, member_prop_t))fid->proxyGetFunc)(obj, memberProp);
+      return ((T (*)(void *, member_prop_t))fid->proxyGetFunc)(obj, memberProp);
      )
     }
     case CALLBACK_PROP: {
-     return ((T* (*)(void *))proxyGetFunc)(obj);
+     return ((T (*)(void *))proxyGetFunc)(obj);
     }
     case STL_CALLBACK_PROP: {
-     return CX::union_cast<CX::Lambda<T* ()>>(arbitraryGet)();
+     return CX::union_cast<CX::Lambda<T ()>>(arbitraryGet)();
     }
     default: break;
    }
