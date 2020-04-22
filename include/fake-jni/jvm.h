@@ -1688,14 +1688,16 @@ namespace FakeJni {
     return proxy(env, CX::union_cast<static_func_t>(fnPtr), args);
    }
    case REGISTER_NATIVES_FUNC: {
-    LocalFrame frame (env.vm);
+    JniEnv &menv = const_cast<JniEnv &>(env);
+    menv.pushLocalFrame();
+
     const auto argc = descriptor->nargs - 2;
     void * values[descriptor->nargs];
     values[0] = new JNIEnv*;
     values[1] = new jobject*;
     *((JNIEnv **)values[0]) = const_cast<JniEnv*>(&env);
     if (clazzOrInst)
-     *((jobject *)values[1]) = frame.getJniEnv().createLocalReference(((JObject*) clazzOrInst)->shared_from_this()); // TODO: migrate to simple-pointer
+     *((jobject *)values[1]) = menv.createLocalReference(((JObject*) clazzOrInst)->shared_from_this()); // TODO: migrate to simple-pointer
     else
      *((jobject *)values[1]) = nullptr;
     //set up arguments
@@ -1725,12 +1727,19 @@ namespace FakeJni {
     if constexpr(CX::IsSame<R, void>::value) {
      ffi_call(descriptor, FFI_FN(fnPtr), nullptr, values);
      _INTERNAL_INVOKE_CLEANUP
+     menv.popLocalFrame();
      return;
     } else {
      using return_t = typename CX::select_if_true<sizeof(R) < sizeof(long), ffi_arg, R>::type;
      return_t result;
      ffi_call(descriptor, FFI_FN(fnPtr), &result, values);
      _INTERNAL_INVOKE_CLEANUP
+     if (descriptor->rtype == &ffi_type_pointer) {
+       auto ref = menv.resolveReference((jobject) result);
+       menv.popLocalFrame();
+       return menv.createLocalReference(ref);
+     }
+     menv.popLocalFrame();
      return (R)result;
     }
    }
