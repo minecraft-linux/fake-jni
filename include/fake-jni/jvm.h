@@ -1633,7 +1633,9 @@ namespace FakeJni {
  template<typename R, typename A>
  R JMethodID::vInvoke(const JniEnv &env, void * clazzOrInst, A& args) const {
   auto * clazz = &((JObject *)clazzOrInst)->getClass();
+#ifndef NDEBUG
   printf("vInvoke %s %s\n", name, signature);
+#endif
   if (strcmp(clazz->getName(), "java/lang/Class") == 0) {
    //Static method, no virtual dispatch
    if (type == MEMBER_FUNC) {
