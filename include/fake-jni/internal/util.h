@@ -328,7 +328,7 @@ delete[] token;
   void parse(const char * signature, Args... args) const {
    auto& ref = const_cast<JniFunctionParser &>(*this);
    std::scoped_lock lock(ref.parserMutex);
-   char parensMatched = -2;
+   signed char parensMatched = -2;
    while (*signature) {
     switch(*signature) {
      case '(': {
