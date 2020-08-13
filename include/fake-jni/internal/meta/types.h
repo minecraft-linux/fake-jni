@@ -180,7 +180,7 @@ private:
  template<typename T>
  [[gnu::always_inline]]
  void assign(T t) noexcept {
-  static_assert(CX::MatchAny<T, jboolean, jbyte, jchar, jshort, jint, jlong, jfloat, jdouble, jobject>::value);
+  //static_assert(CX::MatchAny<T, jboolean, jbyte, jchar, jshort, jint, jlong, jfloat, jdouble, jobject>::value);
   *CX::union_cast<T*>(this) = t;
  }
 };
