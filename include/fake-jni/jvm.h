@@ -892,7 +892,7 @@ namespace FakeJni {
   };
 
   template<typename T>
-  T get(JObject * obj) const;
+  T get(JniEnv const &env, JObject * obj) const;
 
  public:
   const bool isArbitrary;
@@ -938,8 +938,8 @@ namespace FakeJni {
   virtual bool operator ==(const JFieldID &fid) const noexcept;
   virtual const JFieldID * findVirtualMatch(const JClass * clazz) const noexcept;
   [[nodiscard]]
-  virtual jvalue get(const JavaVM * vm, JObject * obj) const;
-  virtual void set(const JavaVM * vm, JObject * obj, void * value) const;
+  virtual jvalue get(const JniEnv &env, JObject * obj) const;
+  virtual void set(const JniEnv &Env, JObject * obj, void * value) const;
 
   jvalue get(const JniEnv &env, jobject obj) const;
   void set(const JniEnv &env, jobject obj, void * value) const;
@@ -1512,7 +1512,7 @@ namespace FakeJni {
  }
 
  template<typename T>
- T JFieldID::get(JObject * const obj) const {
+ T JFieldID::get(JniEnv const &env, JObject * const obj) const {
   auto clazz = &obj->getClass();
   const JFieldID * fid = this;
   if (clazz != &*JClass::getDescriptor()) {
@@ -1522,12 +1522,12 @@ namespace FakeJni {
    switch (fid->type) {
     case STATIC_PROP: {
      _JFIELDID_STATIC_CHECK(
-      return ((T (*)(static_prop_t))fid->proxyGetFunc)(staticProp);
+      return ((T (*)(JniEnv const &, static_prop_t))fid->proxyGetFunc)(env, staticProp);
      )
     }
     case MEMBER_PROP: {
      _JFIELDID_STATIC_CHECK(
-      return ((T (*)(void *, member_prop_t))fid->proxyGetFunc)(obj, memberProp);
+      return ((T (*)(JniEnv const &, void *, member_prop_t))fid->proxyGetFunc)(env, obj, memberProp);
      )
     }
     case CALLBACK_PROP: {

@@ -128,16 +128,16 @@ namespace FakeJni {
   }
  }
 
- jvalue JFieldID::get(const JavaVM * vm, JObject * obj) const {
+ jvalue JFieldID::get(const JniEnv &env, JObject * obj) const {
   switch(type) {
-   case COMPOSED_PROP: return composed->get(vm, obj);
-   default: return CX::union_cast<jvalue>(get<jvalue>(obj));
+   case COMPOSED_PROP: return composed->get(env, obj);
+   default: return CX::union_cast<jvalue>(get<jvalue>(env, obj));
   }
  }
 
- void JFieldID::set(const JavaVM * vm, JObject * const obj, void * const value) const {
+ void JFieldID::set(const JniEnv &env, JObject * const obj, void * const value) const {
   switch(type) {
-   case COMPOSED_PROP: return composed->set(vm, obj, value);
+   case COMPOSED_PROP: return composed->set(env, obj, value);
    default: {
     auto clazz = &obj->getClass();
     const JFieldID * fid = this;
@@ -148,13 +148,13 @@ namespace FakeJni {
      switch (fid->type) {
       case STATIC_PROP: {
        _JFIELDID_STATIC_CHECK(
-        ((void (*)(void *, void *))fid->proxySetFunc)(staticProp, value);
+        ((void (*)(JniEnv const &env, void *, void *))fid->proxySetFunc)(env, staticProp, value);
         return;
        )
       }
       case MEMBER_PROP: {
        _JFIELDID_STATIC_CHECK(
-        ((void (*)(void *, int (_CX::AnyClass::*), void *))fid->proxySetFunc)(obj, memberProp, value);
+        ((void (*)(JniEnv const &env, void *, int (_CX::AnyClass::*), void *))fid->proxySetFunc)(env, obj, memberProp, value);
         return;
        )
       }
@@ -187,10 +187,10 @@ namespace FakeJni {
  }
 
  jvalue JFieldID::get(const FakeJni::JniEnv& env, jobject obj) const {
-  return get(&env.vm, env.resolveReference(obj).get());
+  return get(env, env.resolveReference(obj).get());
  }
 
  void JFieldID::set(const FakeJni::JniEnv& env, jobject obj, void* value) const {
-  set(&env.vm, env.resolveReference(obj).get(), value);
+  set(env, env.resolveReference(obj).get(), value);
  }
 }
