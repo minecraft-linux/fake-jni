@@ -65,7 +65,7 @@ namespace FakeJni {
 
  std::shared_ptr<JObject> JniReferenceTable::getReference(size_t index) const {
   index -= startIndex;
-  if (index < 0 || index > references.size())
+  if (index < 0 || index >= references.size())
    return std::shared_ptr<JObject>();
   return references[index];
  }

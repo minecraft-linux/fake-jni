@@ -13,11 +13,12 @@ namespace FakeJni {
 
  jsize NativeInterface::getStringLength(jstring strRef) const {
   auto str = std::dynamic_pointer_cast<JString>(env.resolveReference(strRef));
-  return str->getLength();
+  return str ? str->getLength() : 0;
  }
 
  jchar * NativeInterface::getStringChars(jstring strRef, jboolean * copy) const {
-  auto str = std::dynamic_pointer_cast<JString>(env.resolveReference(strRef));
+  if(auto ref_ = env.resolveReference(strRef)) {
+  auto str = std::dynamic_pointer_cast<JString>(ref_);
   if (copy) {
    *copy = JNI_TRUE;
   }
@@ -25,6 +26,9 @@ namespace FakeJni {
   auto c_str = new JChar[str->getSize()];
   memcpy(c_str, str->getArray(), (size_t)str->getLength());
   return c_str;
+  } else {
+    return new JChar[1] { '\0' };
+  }
  }
 
  void NativeInterface::releaseStringChars(jstring, const jchar * chars) const {
