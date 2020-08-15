@@ -64,15 +64,17 @@ for (JInt i = start; i < start + len; i++) {\
 }
 
 namespace FakeJni {
- //TODO implement
- void* NativeInterface::getPrimitiveArrayCritical(jarray, jboolean *) const {
-  throw std::runtime_error("FATAL: 'JVMNativeInterface_::getPrimitiveArrayCritical' is unimplemented!");
-  return nullptr;
+ void* NativeInterface::getPrimitiveArrayCritical(jarray jarr, jboolean * copy) const {
+  auto arr = std::reinterpret_pointer_cast<JArray<void*, true>>(env.resolveReference(jarr));
+  //We will never copy for now.
+  if (copy != nullptr) {
+      *copy = JNI_FALSE;
+  }
+  return arr->getArray();
  }
 
-//TODO implement
- void NativeInterface::releasePrimitiveArrayCritical(jarray, void *, jint) const {
-  throw std::runtime_error("FATAL: 'JVMNativeInterface_::releasePrimitiveArrayCritical' is unimplemented!");
+ void NativeInterface::releasePrimitiveArrayCritical(jarray jarr, void * elem, jint mode) const {
+    //Nothing to release as we didn't copy
  }
 
  jsize NativeInterface::getArrayLength(jarray jarr) const {

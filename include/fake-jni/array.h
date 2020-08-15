@@ -33,6 +33,7 @@ namespace FakeJni {
   explicit JArrayImpl(const JArrayImpl<Component, Base> & array);
   explicit JArrayImpl(JInt size);
   explicit JArrayImpl(Component * arr, JInt length);
+  explicit JArrayImpl(std::vector<Component> arr);
   JArrayImpl() : JArrayImpl(0) {}
   virtual ~JArrayImpl();
 
@@ -181,6 +182,14 @@ namespace FakeJni {
  JArrayImpl<T, Base>::JArrayImpl(T * const arr, const JInt length) : JArrayImpl(length) {
   for (JInt i = 0; i < length; i++) {
    array[i] = arr[i];
+  }
+ }
+
+ template<typename T, typename Base>
+ JArrayImpl<T, Base>::JArrayImpl(std::vector<T> vec) : JArrayImpl((JInt) vec.size()) {
+  size_t i = 0;
+  for (auto element : vec) {
+   array[i++] = element;
   }
  }
 

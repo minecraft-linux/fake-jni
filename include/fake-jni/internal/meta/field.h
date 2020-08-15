@@ -5,8 +5,40 @@
 #include <stdexcept>
 
 namespace FakeJni {
+ class JniEnv;
+ class JObject;
  //Template glue code for field registration and access
  namespace _CX {
+
+  std::shared_ptr<JObject> resolveArgumentReference(JniEnv const &env, jobject object);
+  jobject createLocalReturnReference(JniEnv const &env, std::shared_ptr<JObject> ptr);
+
+  template <typename T>
+  struct ValueTranslator {
+   [[gnu::always_inline]]
+   inline static jvalue convert_get(JniEnv const &env, T value) {
+    return jvalue{value};
+   }
+
+   [[gnu::always_inline]]
+   inline static T convert_set(JniEnv const &env, jvalue value) {
+    return (T) value;
+   }
+  };
+
+  template <typename T>
+  struct ValueTranslator<std::shared_ptr<T>> {
+   [[gnu::always_inline]]
+   inline static jvalue convert_get(JniEnv const &env, std::shared_ptr<T> value) {
+    return (jvalue) createLocalReturnReference(env, std::move(value));
+   }
+
+   [[gnu::always_inline]]
+   inline static std::shared_ptr<T> convert_set(JniEnv const &env, jvalue value) {
+    return std::dynamic_pointer_cast<T>(resolveArgumentReference(env, (jobject) value));
+   }
+  };
+
   //SFINAE templates to generate field accessors
   //Field accessor for mutable member fields
   template<typename...>
@@ -16,17 +48,17 @@ namespace FakeJni {
   template<typename T, typename F>
   class FieldAccessor<F (T::*)> {
   public:
-   using type_t = F (T::* const);
-   using erased_t = int (AnyClass::* const);
+   using type_t = F (T::*);
+   using erased_t = int (AnyClass::*);
 
    [[gnu::always_inline]]
-   inline static jvalue get(void * inst, erased_t field) {
-    return (((T * const)inst)->*((type_t)field));
+   inline static jvalue get(JniEnv const &env, void * inst, erased_t field) {
+    return ValueTranslator<F>::convert_get(env, ((T*)inst)->*((type_t)field));
    }
 
    [[gnu::always_inline]]
-   inline static void set(void * const inst, erased_t field, void * const value) {
-    ((T*)inst)->*((type_t)field) = *((F*)value);
+   inline static void set(JniEnv const &env, void * const inst, erased_t field, void * const value) {
+    ((T*)inst)->*((type_t)field) = ValueTranslator<F>::convert_set(env, *((F*)value));
    }
   };
 
@@ -38,12 +70,12 @@ namespace FakeJni {
    using erased_t = int (AnyClass::* const);
 
    [[gnu::always_inline]]
-   inline static const jvalue get(void * inst, erased_t field) {
-    return (jvalue) &(((T*)inst)->*((type_t)field));
+   inline static const jvalue get(JniEnv const &env, void * inst, erased_t field) {
+    return ValueTranslator<F>::convert_get(env, &(((T*)inst)->*((type_t)field)));
    }
 
    [[gnu::always_inline]]
-   inline static void set(void * const inst, erased_t field, void * const value) {
+   inline static void set(JniEnv const &env, void * const inst, erased_t field, void * const value) {
     std::string error = "Attempted to write to immutable field: '";
     error += typeid(type_t).name();
     error += "'!";
@@ -59,13 +91,13 @@ namespace FakeJni {
    using erased_t = void * const;
 
    [[gnu::always_inline]]
-   inline static jvalue get(erased_t field) {
-    return (jvalue) *((type_t)field);
+   inline static jvalue get(JniEnv const &env, erased_t field) {
+    return ValueTranslator<F>::convert_get(env, *((type_t)field));
    }
 
    [[gnu::always_inline]]
-   inline static void set(erased_t field, void * const value) {
-    *((type_t)field) = *((type_t)value);
+   inline static void set(JniEnv const &env, erased_t field, void * const value) {
+    *((type_t)field) = ValueTranslator<F>::convert_set(env, *((type_t)value));
    }
   };
 
@@ -77,12 +109,12 @@ namespace FakeJni {
    using erased_t = void * const;
 
    [[gnu::always_inline]]
-   inline static jvalue get(erased_t field) {
-    return (jvalue) *((type_t)field);
+   inline static jvalue get(JniEnv const &env, erased_t field) {
+    return ValueTranslator<F>::convert_get(env, *((type_t)field));
    }
 
    [[gnu::always_inline]]
-   inline static void set(erased_t field, void * value) {
+   inline static void set(JniEnv const &env, erased_t field, void * value) {
     std::string error = "Attempted to write to immutable field: '";
     error +=  typeid(type_t).name();
     error += "'!";

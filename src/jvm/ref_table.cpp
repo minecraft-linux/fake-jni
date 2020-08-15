@@ -55,7 +55,7 @@ namespace FakeJni {
 
  void JniReferenceTable::deleteReference(size_t index) {
   index -= startIndex;
-  if (index < 0 || index > references.size())
+  if (index < 0 || index >= references.size())
    throw std::runtime_error("FATAL: Invalid out-of-bounds reference index");
   if (!references[index])
    throw std::runtime_error("FATAL: Invalid empty reference");
