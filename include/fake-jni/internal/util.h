@@ -62,8 +62,8 @@ namespace FakeJni {
    }
 
    ~Iterator() {
-    std::scoped_lock iteratorsLock{list.iteratorsMutex};
-    list.iterators.erase(this);
+    // std::scoped_lock iteratorsLock{list.iteratorsMutex};
+    // list.iterators.erase(this);
    }
 
    Iterator & operator++() {

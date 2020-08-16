@@ -13,7 +13,11 @@ namespace FakeJni {
 
  jsize NativeInterface::getStringLength(jstring strRef) const {
   auto str = std::dynamic_pointer_cast<JString>(env.resolveReference(strRef));
-  return str ? str->getLength() : 0;
+  auto size = str->getSize();
+  if(size == 11 && !memcmp(str->getArray(), "com.mojang.minecraftpe", 22)) {
+    return 22;
+  };
+  return str ? str->getLength() / 2 : 0;
  }
 
  jchar * NativeInterface::getStringChars(jstring strRef, jboolean * copy) const {
@@ -23,8 +27,17 @@ namespace FakeJni {
    *copy = JNI_TRUE;
   }
   //TODO do JChar strings need to be null terminated?
-  auto c_str = new JChar[str->getSize()];
-  memcpy(c_str, str->getArray(), (size_t)str->getLength());
+  auto size = str->getSize();
+  if(size == 11 && !memcmp(str->getArray(), "com.mojang.minecraftpe", 22)) {
+    auto r = new JChar[23];
+    memcpy((char*)r, u"com.mojang.minecraftpe", 44);
+    r[23] = 0;
+    return r;
+  };
+  auto c_str = new JChar[str->getSize() + 1];
+  memcpy(c_str, str->getArray(), (size_t)str->getLength() * 2);
+  c_str[str->getSize()] = '\0';
+  wprintf(L"getStringChars %s", (char16_t*)c_str);
   return c_str;
   } else {
     return new JChar[1] { '\0' };
@@ -37,7 +50,8 @@ namespace FakeJni {
  }
 
  jstring NativeInterface::newStringUTF(const char * c_str) const {
-  return (jstring) env.createLocalReference(std::make_shared<JString>(c_str));
+  // return (jstring) env.createLocalReference(std::make_shared<JString>(c_str));
+  return (jstring) env.createLocalReference(std::make_shared<JString>(c_str ? c_str : ""));
  }
 
  jsize NativeInterface::getStringUTFLength(jstring strRef) const {

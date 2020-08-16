@@ -25,7 +25,7 @@ namespace FakeJni {
  }
 
  JString::JString(const JChar * str, JInt size) : JString(size * 2) {
-  memcpy(getArray(), (char *)str, (size_t)size);
+  memcpy(getArray(), (char *)str, (size_t)size * 2);
  }
 
  JString::JString(std::string const &str) : JString(str.c_str()) {
