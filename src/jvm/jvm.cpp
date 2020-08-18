@@ -229,10 +229,10 @@ case _signal: {\
  }
 
  void Jvm::deleteGlobalReference(jobject reference) {
-  // auto desc = JniReferenceDescription(reference).desc;
-  // if (!desc.isGlobal)
-  //  throw std::runtime_error("FATAL: Reference is a local reference");
-  // globalRefs.deleteReference(desc.index);
+  auto desc = JniReferenceDescription(reference).desc;
+  if (!desc.isGlobal)
+   throw std::runtime_error("FATAL: Reference is a local reference");
+  globalRefs.deleteReference(desc.index);
  }
 
  JniReferenceTable& Jvm::getGlobalReferenceTable() {
