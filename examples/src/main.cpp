@@ -12,39 +12,39 @@ public:
  DEFINE_CLASS_NAME("com/example/ExampleClass")
 
  JInt exampleField1;
- JString exampleField2;
+ std::shared_ptr<JString> exampleField2;
 
  //This constructor is visible to the JVM
  ExampleClass() :
   exampleField1(10),
-  exampleField2("Hello World!")
+  exampleField2(std::make_shared<JString>("Hello World!"))
  {}
 
  //This constructor is visible to the JVM
- ExampleClass(JInt, JString *) :
+ ExampleClass(JInt, std::shared_ptr<JString>) :
   exampleField1(0),
-  exampleField2{""}
+  exampleField2{std::make_shared<JString>("")}
  {}
 
  //This constructor is visible to the JVM
- ExampleClass(JDouble, ExampleClass *) :
+ ExampleClass(JDouble, std::shared_ptr<ExampleClass>) :
   exampleField1(0),
-  exampleField2{""}
+  exampleField2{std::make_shared<JString>("")}
  {}
 
  //This constructor is not visible to the JVM and thus no compile-time error is generated
  //for the illegal constructor prototype
  ExampleClass(JBooleanArray arr):
   exampleField1(-1),
-  exampleField2("This constructor is not registered on the JVM!")
+  exampleField2(std::make_shared<JString>("This constructor is not registered on the JVM!"))
  {}
 
  JInt exampleFunction() {
   return exampleField1;
  }
 
- JString* getMyString() {
-  return &exampleField2;
+ std::shared_ptr<JString> getMyString() {
+  return exampleField2;
  }
 
  inline static void exampleStaticFunction(JDouble d) {
@@ -75,8 +75,8 @@ BEGIN_NATIVE_DESCRIPTOR(ExampleClass)
  {Field<&ExampleClass::exampleField2> {}, "exampleField2"},
  //Register constructors
  {Constructor<ExampleClass> {}},
- {Constructor<ExampleClass, JInt, JString*> {}},
- {Constructor<ExampleClass, JDouble, ExampleClass *> {}}
+ {Constructor<ExampleClass, JInt, std::shared_ptr<JString>> {}},
+ {Constructor<ExampleClass, JDouble, std::shared_ptr<ExampleClass>> {}}
 END_NATIVE_DESCRIPTOR
 
 static void bruh(JNIEnv *env, jobject clazzOrInst, JDouble value) {
