@@ -4,6 +4,7 @@
 #include <cx/unsafe.h>
 
 #include <stdexcept>
+#include <memory>
 
 #define _NEW_ARRAY(array_type, ret_type)\
 auto arr = new array_type(size);\
@@ -65,7 +66,7 @@ for (JInt i = start; i < start + len; i++) {\
 
 namespace FakeJni {
  void* NativeInterface::getPrimitiveArrayCritical(jarray jarr, jboolean * copy) const {
-  auto arr = std::reinterpret_pointer_cast<JArray<void*, true>>(env.resolveReference(jarr));
+  auto arr = std::static_pointer_cast<JArray<void*, true>>(env.resolveReference(jarr));
   //We will never copy for now.
   if (copy != nullptr) {
       *copy = JNI_FALSE;
