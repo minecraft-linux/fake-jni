@@ -30,14 +30,13 @@ namespace FakeJni {
   auto size = str->getSize();
   if(size == 11 && !memcmp(str->getArray(), "com.mojang.minecraftpe", 22)) {
     auto r = new JChar[23];
-    memcpy((char*)r, u"com.mojang.minecraftpe", 44);
-    r[23] = 0;
+    memcpy((char*)r, u"com.mojang.minecraftpe", 22 * sizeof(jchar));
+    r[22] = 0;
     return r;
   };
-  auto c_str = new JChar[str->getSize() + 1];
-  memcpy(c_str, str->getArray(), (size_t)str->getLength() * 2);
-  c_str[str->getSize()] = '\0';
-  wprintf(L"getStringChars %s", (char16_t*)c_str);
+  auto c_str = new JChar[size + 1];
+  memcpy(c_str, str->getArray(), (size_t)size * sizeof(JChar));
+  c_str[size] = '\0';
   return c_str;
   } else {
     return new JChar[1] { '\0' };
