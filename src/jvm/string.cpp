@@ -19,7 +19,7 @@ namespace FakeJni {
   length(size)
  {}
 
- JString::JString(const char * str) : JString((JInt)strlen(str))
+ JString::JString(const char * str) : JString(str ? (JInt)strlen(str) : (JInt)0)
  {
   memcpy(getArray(), str, (size_t)length);
  }
